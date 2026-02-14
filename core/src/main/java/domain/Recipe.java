@@ -1,18 +1,18 @@
 package domain;
 
-import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.Setter;
+import lombok.RequiredArgsConstructor;
 
 import java.util.List;
 
 
-@AllArgsConstructor
+@RequiredArgsConstructor
 @Getter
-@Setter
 public class Recipe {
 
-    Long id;
-    String name;
-    List<RecipeIngredient> ingredients;
+    private final Long id;
+    private final String name;
+    private final String category;
+    private final String description;
+    private final List<RecipeIngredient> ingredients;
 }

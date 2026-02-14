@@ -1,16 +1,14 @@
 package domain;
 
-import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.Setter;
+import lombok.RequiredArgsConstructor;
 
-@AllArgsConstructor
+@RequiredArgsConstructor
 @Getter
-@Setter
 public class RecipeIngredient{
 
-    Long id;
-    String ingredientName;
-    Quantity quantity;
-    String description;
+    private final Long id;
+    private final String ingredientName;
+    private final Quantity quantity;
+    private final String description;
 }
