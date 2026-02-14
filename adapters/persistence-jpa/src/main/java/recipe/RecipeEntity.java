@@ -1,11 +1,14 @@
 package recipe;
 
+import domain.RecipeIngredient;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
+
+import java.util.List;
 
 @Entity
 @Table(name = "recipes")
@@ -30,5 +33,5 @@ public class RecipeEntity {
     // Store RecipeIngredient list as JSON
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(nullable = false)
-    private String ingredientsJson;
+    private List<RecipeIngredient> ingredients;
 }
