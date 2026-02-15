@@ -47,6 +47,6 @@ public class RecipeRepositoryJpa implements RecipeRepository {
     }
 
     private Recipe toDomain(RecipeEntity entity) {
-        return Recipe.rehydrate(entity.getId(), entity.getName(), entity.getCategory(), entity.getDescription(), entity.getIngredients());
+        return Recipe.hydrate(entity.getId(), entity.getName(), entity.getCategory(), entity.getDescription(), entity.getIngredients());
     }
 }

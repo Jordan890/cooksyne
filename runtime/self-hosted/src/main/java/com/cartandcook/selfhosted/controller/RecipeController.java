@@ -1,11 +1,9 @@
 package com.cartandcook.selfhosted.controller;
 
 import com.cartandcook.core.domain.Recipe;
-import com.cartandcook.core.domain.RecipeIngredient;
 import com.cartandcook.selfhosted.contracts.RecipeRequest;
 import com.cartandcook.selfhosted.contracts.RecipeResponse;
 import com.cartandcook.selfhosted.service.RecipeServiceSpring;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -43,16 +41,12 @@ public class RecipeController {
 
     @PostMapping
     public ResponseEntity<RecipeResponse> upsertRecipe(@RequestBody RecipeRequest request) {
-        List<RecipeIngredient> ingredients = request.getIngredients().stream().map(ingredient -> {
-            ingredient.setName(ingredient.getName().toLowerCase());
-            return ingredient;
-        }).toList();
-        Recipe recipe = new Recipe(
+        Recipe recipe = Recipe.hydrate(
                 request.getId(),
-                request.getName().toLowerCase(),
-                request.getCategory().toLowerCase(),
-                request.getDescription().toLowerCase(),
-                ingredients
+                request.getName(),
+                request.getCategory(),
+                request.getDescription(),
+                request.getIngredients()
         );
         Recipe saved = recipeService.upsertRecipe(recipe);
         return ResponseEntity.ok(toResponse(saved));

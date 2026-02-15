@@ -16,7 +16,9 @@ public class Recipe {
     private final String description;
     private final List<RecipeIngredient> ingredients;
 
-    public static Recipe rehydrate(Long id, String name, String category, String description, List<RecipeIngredient> ingredients) {
-        return new Recipe(id, name, category, description, ingredients);
+    public static Recipe hydrate(Long id, String name, String category, String description, List<RecipeIngredient> ingredients) {
+        List<RecipeIngredient> lowerIngredients = ingredients.stream().peek(ingredient ->
+                ingredient.setName(ingredient.getName().toLowerCase())).toList();
+        return new Recipe(id, name.toLowerCase(), category.toLowerCase(), description.toLowerCase(), lowerIngredients);
     }
 }
