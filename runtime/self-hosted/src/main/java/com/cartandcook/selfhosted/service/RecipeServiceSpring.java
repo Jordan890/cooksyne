@@ -28,4 +28,8 @@ public class RecipeServiceSpring {
     public List<Recipe> getAllRecipes() {
         return coreService.getAllRecipes();
     }
+
+    public void deleteRecipe(Long id) {
+        coreService.deleteRecipe(id);
+    }
 }
