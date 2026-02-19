@@ -20,8 +20,6 @@ public class GroceryListRepositoryJpa implements GroceryListRepository {
     @Override
     public GroceryList save(GroceryList groceryList) {
 
-        System.out.println("Grocery list owner is: " + groceryList.getOwnerId());
-
         GroceryListEntity groceryListEntity;
 
         if(groceryList.getId() != null) {
