@@ -30,4 +30,9 @@ public class UserRepositoryJpa implements UserRepository {
         return repository.findById(id)
                 .map(e -> new User(e.getId(), e.getEmail(), e.getDisplayName()));
     }
+
+    @Override
+    public Optional<User> findByEmail(String email) {
+        return repository.findByEmail(email).map(e -> new User(e.getId(), e.getEmail(), e.getDisplayName()));
+    }
 }

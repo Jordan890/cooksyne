@@ -30,19 +30,28 @@ public class CurrentUserProvider {
         String sub = jwt.getSubject();
         String email = jwt.getClaimAsString("email");
         String name = jwt.getClaimAsString("name");
+        Boolean verified = jwt.getClaimAsBoolean("email_verified");
 
-        // Look up external identity first
-        ExternalIdentity identity = identityRepo.findByIssuerAndSubject(issuer, sub)
-                .orElseGet(() -> {
-                    // First login → create internal User
-                    User user = userRepo.save(new User(null, email, name));
-                    return identityRepo.save(
-                            new ExternalIdentity(user.getId(), issuer, sub)
-                    );
-                });
 
-        // Return the internal User
-        return userRepo.findById(identity.getUserId())
-                .orElseThrow(() -> new RuntimeException("Internal user not found"));
+        // 1️⃣ existing external identity
+        return identityRepo.findByIssuerAndSubject(issuer, sub)
+                .map(identity -> userRepo.findById(identity.getUserId())
+                        .orElseThrow(() -> new RuntimeException("User not found for identity: " + identity)))
+                .orElseGet(() -> linkOrProvision(issuer, sub, email, name, verified));
+    }
+
+    private User linkOrProvision(String issuer, String sub, String email, String name, Boolean verified) {
+
+        if(!Boolean.TRUE.equals(verified)){
+            throw new RuntimeException("Email not verified for " + email);
+        }
+        // 2️⃣ try email match
+        User user = userRepo.findByEmail(email)
+                .orElseGet(() -> userRepo.save(new User(null, email, name)));
+
+        // 3️⃣ link new identity
+        identityRepo.save(new ExternalIdentity(user.getId(), issuer, sub));
+
+        return user;
     }
 }
