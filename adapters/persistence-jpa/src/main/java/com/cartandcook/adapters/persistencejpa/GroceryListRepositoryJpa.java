@@ -20,6 +20,8 @@ public class GroceryListRepositoryJpa implements GroceryListRepository {
     @Override
     public GroceryList save(GroceryList groceryList) {
 
+        System.out.println("Grocery list owner is: " + groceryList.getOwnerId());
+
         GroceryListEntity groceryListEntity;
 
         if(groceryList.getId() != null) {
@@ -29,7 +31,7 @@ public class GroceryListRepositoryJpa implements GroceryListRepository {
             }
         } else {
             groceryListEntity = new GroceryListEntity();
-            groceryListEntity.setOwnerId(groceryListEntity.getOwnerId());
+            groceryListEntity.setOwnerId(groceryList.getOwnerId());
         }
         groceryListEntity.setName(groceryList.getName());
         groceryListEntity.setDescription(groceryList.getDescription());
