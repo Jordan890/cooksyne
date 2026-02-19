@@ -20,17 +20,17 @@ public class GroceryListServiceImpl implements GroceryListService {
     }
 
     @Override
-    public List<GroceryList> getAllGroceryLists() {
-        return groceryListRepository.findAll();
+    public List<GroceryList> getAllGroceryLists(Long userId) {
+        return groceryListRepository.findAll(userId);
     }
 
     @Override
-    public GroceryList getGroceryListById(Long id) {
-        return groceryListRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Recipe not found with id: " + id));
+    public GroceryList getGroceryListById(Long id, Long userId) {
+        return groceryListRepository.findById(id, userId).orElseThrow(() -> new IllegalArgumentException("Recipe not found with id: " + id));
     }
 
     @Override
-    public void deleteGroceryList(Long id) {
-        groceryListRepository.delete(id);
+    public void deleteGroceryList(Long id, Long userId) {
+        groceryListRepository.delete(id, userId);
     }
 }

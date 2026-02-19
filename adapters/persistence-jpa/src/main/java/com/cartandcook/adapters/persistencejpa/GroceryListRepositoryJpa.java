@@ -19,9 +19,17 @@ public class GroceryListRepositoryJpa implements GroceryListRepository {
 
     @Override
     public GroceryList save(GroceryList groceryList) {
-        GroceryListEntity groceryListEntity = new GroceryListEntity();
+
+        GroceryListEntity groceryListEntity;
+
         if(groceryList.getId() != null) {
-            groceryListEntity.setId(groceryList.getId());
+            groceryListEntity = jpaRepository.findByIdAndOwnerId(groceryList.getId(), groceryList.getOwnerId()).orElse(null);
+            if(groceryListEntity == null) {
+                throw new IllegalArgumentException("Grocery list with id " + groceryList.getId() + " not found for user " + groceryList.getOwnerId());
+            }
+        } else {
+            groceryListEntity = new GroceryListEntity();
+            groceryListEntity.setOwnerId(groceryListEntity.getOwnerId());
         }
         groceryListEntity.setName(groceryList.getName());
         groceryListEntity.setDescription(groceryList.getDescription());
@@ -31,21 +39,21 @@ public class GroceryListRepositoryJpa implements GroceryListRepository {
     }
 
     @Override
-    public Optional<GroceryList> findById(Long id) {
-        return jpaRepository.findById(id).map(this::toDomain);
+    public Optional<GroceryList> findById(Long id, Long userId) {
+        return jpaRepository.findByIdAndOwnerId(id, userId).map(this::toDomain);
     }
 
     @Override
-    public List<GroceryList> findAll() {
-        return jpaRepository.findAll().stream().map(this::toDomain).collect(Collectors.toList());
+    public List<GroceryList> findAll(Long userId) {
+        return jpaRepository.findByOwnerId(userId).stream().map(this::toDomain).collect(Collectors.toList());
     }
 
     @Override
-    public void delete(Long id) {
-        jpaRepository.deleteById(id);
+    public void delete(Long id, Long userId) {
+        jpaRepository.deleteByIdAndOwnerId(id, userId);
     }
 
     private GroceryList toDomain(GroceryListEntity entity) {
-        return GroceryList.hydrate(entity.getId(), entity.getName(), entity.getDescription(), entity.getIngredients());
+        return GroceryList.hydrate(entity.getId(), entity.getName(), entity.getDescription(), entity.getIngredients(), entity.getOwnerId());
     }
 }

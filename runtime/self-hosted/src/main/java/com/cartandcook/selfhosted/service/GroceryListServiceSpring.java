@@ -3,6 +3,7 @@ package com.cartandcook.selfhosted.service;
 import com.cartandcook.core.api.GroceryListRepository;
 import com.cartandcook.core.domain.GroceryList;
 import com.cartandcook.core.services.GroceryListServiceImpl;
+import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -21,15 +22,16 @@ public class GroceryListServiceSpring {
         return coreService.upsertGroceryList(groceryList);
     }
 
-    public GroceryList getGroceryListById(Long id) {
-        return coreService.getGroceryListById(id);
+    public GroceryList getGroceryListById(Long id, Long userId) {
+        return coreService.getGroceryListById(id, userId);
     }
 
-    public List<GroceryList> getAllGroceryLists() {
-        return coreService.getAllGroceryLists();
+    public List<GroceryList> getAllGroceryLists(Long userId) {
+        return coreService.getAllGroceryLists(userId);
     }
 
-    public void deleteGroceryList(Long id) {
-        coreService.deleteGroceryList(id);
+    @Transactional
+    public void deleteGroceryList(Long id, Long userId) {
+        coreService.deleteGroceryList(id, userId);
     }
 }

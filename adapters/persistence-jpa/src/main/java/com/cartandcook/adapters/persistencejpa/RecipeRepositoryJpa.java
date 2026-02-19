@@ -19,15 +19,21 @@ public class RecipeRepositoryJpa implements RecipeRepository {
 
     @Override
     public Recipe save(Recipe recipe) {
-        RecipeEntity recipeEntity = new RecipeEntity();
+        RecipeEntity recipeEntity;
         if(recipe.getId() != null) {
-            recipeEntity.setId(recipe.getId());
+            recipeEntity = jpaRepository.findByIdAndOwnerId(recipe.getId(), recipe.getOwnerId())
+                    .orElse(null);
+            if (recipeEntity == null) {
+                throw new IllegalArgumentException("Recipe with id " + recipe.getId() + " not found for user " + recipe.getOwnerId());
+            }
+        } else {
+            recipeEntity = new RecipeEntity();
+            recipeEntity.setOwnerId(recipe.getOwnerId());
         }
         recipeEntity.setName(recipe.getName());
         recipeEntity.setCategory(recipe.getCategory());
         recipeEntity.setDescription(recipe.getDescription());
         recipeEntity.setIngredients(recipe.getIngredients());
-        recipeEntity.setOwnerId(recipe.getOwnerId());
         RecipeEntity saved = jpaRepository.save(recipeEntity);
         return toDomain(saved);
     }

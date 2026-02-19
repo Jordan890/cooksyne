@@ -1,10 +1,14 @@
 package com.cartandcook.selfhosted.controller;
 
 import com.cartandcook.core.domain.GroceryList;
+import com.cartandcook.core.domain.User;
 import com.cartandcook.selfhosted.contracts.GroceryListRequest;
 import com.cartandcook.selfhosted.contracts.GroceryListResponse;
+import com.cartandcook.selfhosted.security.CurrentUserProvider;
 import com.cartandcook.selfhosted.service.GroceryListServiceSpring;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -15,14 +19,18 @@ import java.util.stream.Collectors;
 public class GroceryListController {
 
     private final GroceryListServiceSpring groceryListService;
+    private final CurrentUserProvider currentUserProvider;
 
-    public GroceryListController(GroceryListServiceSpring groceryListService) {
+    public GroceryListController(GroceryListServiceSpring groceryListService,
+                                 CurrentUserProvider currentUserProvider) {
         this.groceryListService = groceryListService;
+        this.currentUserProvider = currentUserProvider;
     }
 
     @GetMapping
-    public ResponseEntity<List<GroceryListResponse>> getAllGroceryLists() {
-        List<GroceryListResponse> response = groceryListService.getAllGroceryLists()
+    public ResponseEntity<List<GroceryListResponse>> getAllGroceryLists(@AuthenticationPrincipal Jwt jwt) {
+        User currentUser = currentUserProvider.getCurrentUser(jwt);
+        List<GroceryListResponse> response = groceryListService.getAllGroceryLists(currentUser.getId())
                 .stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());
@@ -30,8 +38,9 @@ public class GroceryListController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<GroceryListResponse> getGroceryListById(@PathVariable("id") Long id) {
-        GroceryList groceryList = groceryListService.getGroceryListById(id);
+    public ResponseEntity<GroceryListResponse> getGroceryListById(@AuthenticationPrincipal Jwt jwt, @PathVariable("id") Long id) {
+        User currentUser = currentUserProvider.getCurrentUser(jwt);
+        GroceryList groceryList = groceryListService.getGroceryListById(id, currentUser.getId());
         if (groceryList == null) {
             return ResponseEntity.notFound().build();
         }
@@ -39,20 +48,23 @@ public class GroceryListController {
     }
 
     @PostMapping
-    public ResponseEntity<GroceryListResponse> upsertRecipe(@RequestBody GroceryListRequest request) {
+    public ResponseEntity<GroceryListResponse> upsertRecipe(@AuthenticationPrincipal Jwt jwt, @RequestBody GroceryListRequest request) {
+        User currentUser = currentUserProvider.getCurrentUser(jwt);
         GroceryList groceryList = GroceryList.hydrate(
                 request.getId(),
                 request.getName(),
                 request.getDescription(),
-                request.getIngredients()
+                request.getIngredients(),
+                currentUser.getId()
         );
         GroceryList saved = groceryListService.upsertGroceryList(groceryList);
         return ResponseEntity.ok(toResponse(saved));
     }
 
     @DeleteMapping("/{id}")
-    public void deleteRecipe(@PathVariable("id") Long id) {
-        groceryListService.deleteGroceryList(id);
+    public void deleteRecipe(@AuthenticationPrincipal Jwt jwt, @PathVariable("id") Long id) {
+        User currentUser = currentUserProvider.getCurrentUser(jwt);
+        groceryListService.deleteGroceryList(id, currentUser.getId());
     }
 
     // Mapper to Response DTO

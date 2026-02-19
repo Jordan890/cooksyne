@@ -7,7 +7,7 @@ import java.util.List;
 public interface GroceryListService {
 
     GroceryList upsertGroceryList(GroceryList groceryList);
-    List<GroceryList> getAllGroceryLists();
-    GroceryList getGroceryListById(Long id);
-    void deleteGroceryList(Long id);
+    List<GroceryList> getAllGroceryLists(Long userId);
+    GroceryList getGroceryListById(Long id, Long userId);
+    void deleteGroceryList(Long id, Long userId);
 }

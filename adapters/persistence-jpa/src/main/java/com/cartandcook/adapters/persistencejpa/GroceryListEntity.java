@@ -37,4 +37,8 @@ public class GroceryListEntity {
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(nullable = false)
     private List<IngredientQuantity> ingredients;
+
+    // --- new field for ownership ---
+    @Column(nullable = false)
+    private Long ownerId;
 }
