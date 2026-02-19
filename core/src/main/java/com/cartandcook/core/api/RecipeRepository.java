@@ -8,7 +8,7 @@ import java.util.Optional;
 public interface RecipeRepository {
 
     Recipe save(Recipe recipe);
-    Optional<Recipe> findById(Long id);
+    Optional<Recipe> findById(Long id, Long userId);
     List<Recipe> findAll(Long userId);
-    void delete(Long id);
+    void delete(Long id, Long userId);
 }

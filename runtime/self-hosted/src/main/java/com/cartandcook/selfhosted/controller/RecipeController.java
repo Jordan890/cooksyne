@@ -37,8 +37,9 @@ public class RecipeController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<RecipeResponse> getRecipeById(@PathVariable("id") Long id) {
-        Recipe recipe = recipeService.getRecipeById(id);
+    public ResponseEntity<RecipeResponse> getRecipeById(@AuthenticationPrincipal Jwt jwt, @PathVariable("id") Long id) {
+        User currentUser = currentUserProvider.getCurrentUser(jwt);
+        Recipe recipe = recipeService.getRecipeById(id, currentUser.getId());
         if (recipe == null) {
             return ResponseEntity.notFound().build();
         }
@@ -46,21 +47,24 @@ public class RecipeController {
     }
 
     @PostMapping
-    public ResponseEntity<RecipeResponse> upsertRecipe(@RequestBody RecipeRequest request) {
+    public ResponseEntity<RecipeResponse> upsertRecipe(@AuthenticationPrincipal Jwt jwt, @RequestBody RecipeRequest request) {
+        User currentUser = currentUserProvider.getCurrentUser(jwt);
         Recipe recipe = Recipe.hydrate(
                 request.getId(),
                 request.getName(),
                 request.getCategory(),
                 request.getDescription(),
-                request.getIngredients()
+                request.getIngredients(),
+                currentUser.getId()
         );
         Recipe saved = recipeService.upsertRecipe(recipe);
         return ResponseEntity.ok(toResponse(saved));
     }
 
     @DeleteMapping("/{id}")
-    public void deleteRecipe(@PathVariable("id") Long id) {
-        recipeService.deleteRecipe(id);
+    public void deleteRecipe(@AuthenticationPrincipal Jwt jwt, @PathVariable("id") Long id) {
+        User currentUser = currentUserProvider.getCurrentUser(jwt);
+        recipeService.deleteRecipe(id, currentUser.getId());
     }
 
     // Mapper to Response DTO

@@ -8,6 +8,6 @@ public interface RecipeService {
 
     Recipe upsertRecipe(Recipe recipe);
     List<Recipe> getAllRecipes(Long userId);
-    Recipe getRecipeById(Long id);
-    void deleteRecipe(Long id);
+    Recipe getRecipeById(Long id, Long userId);
+    void deleteRecipe(Long id, Long userId);
 }

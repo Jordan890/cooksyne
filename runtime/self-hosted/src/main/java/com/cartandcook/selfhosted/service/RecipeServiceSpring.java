@@ -3,6 +3,7 @@ package com.cartandcook.selfhosted.service;
 import com.cartandcook.core.api.RecipeRepository;
 import com.cartandcook.core.domain.Recipe;
 import com.cartandcook.core.services.RecipeServiceImpl;
+import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -21,15 +22,16 @@ public class RecipeServiceSpring {
         return coreService.upsertRecipe(recipe);
     }
 
-    public Recipe getRecipeById(Long id) {
-        return coreService.getRecipeById(id);
+    public Recipe getRecipeById(Long id, Long userId) {
+        return coreService.getRecipeById(id, userId);
     }
 
     public List<Recipe> getAllRecipes(Long userId) {
         return coreService.getAllRecipes(userId);
     }
 
-    public void deleteRecipe(Long id) {
-        coreService.deleteRecipe(id);
+    @Transactional
+    public void deleteRecipe(Long id, Long userId) {
+        coreService.deleteRecipe(id, userId);
     }
 }

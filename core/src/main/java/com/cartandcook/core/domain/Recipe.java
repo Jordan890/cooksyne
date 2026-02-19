@@ -15,10 +15,11 @@ public class Recipe {
     private final String category;
     private final String description;
     private final List<IngredientQuantity> ingredients;
+    private final Long ownerId;
 
-    public static Recipe hydrate(Long id, String name, String category, String description, List<IngredientQuantity> ingredients) {
+    public static Recipe hydrate(Long id, String name, String category, String description, List<IngredientQuantity> ingredients, Long ownerId) {
         List<IngredientQuantity> lowerIngredients = ingredients.stream().peek(ingredient ->
                 ingredient.setName(ingredient.getName().toLowerCase())).toList();
-        return new Recipe(id, name.toLowerCase(), category.toLowerCase(), description.toLowerCase(), lowerIngredients);
+        return new Recipe(id, name.toLowerCase(), category.toLowerCase(), description.toLowerCase(), lowerIngredients, ownerId);
     }
 }

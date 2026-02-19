@@ -27,13 +27,14 @@ public class RecipeRepositoryJpa implements RecipeRepository {
         recipeEntity.setCategory(recipe.getCategory());
         recipeEntity.setDescription(recipe.getDescription());
         recipeEntity.setIngredients(recipe.getIngredients());
+        recipeEntity.setOwnerId(recipe.getOwnerId());
         RecipeEntity saved = jpaRepository.save(recipeEntity);
         return toDomain(saved);
     }
 
     @Override
-    public Optional<Recipe> findById(Long id) {
-        return jpaRepository.findById(id).map(this::toDomain);
+    public Optional<Recipe> findById(Long id, Long userId) {
+        return jpaRepository.findByIdAndOwnerId(id, userId).map(this::toDomain);
     }
 
     @Override
@@ -42,11 +43,11 @@ public class RecipeRepositoryJpa implements RecipeRepository {
     }
 
     @Override
-    public void delete(Long id) {
-        jpaRepository.deleteById(id);
+    public void delete(Long id, Long userId) {
+        jpaRepository.deleteByIdAndOwnerId(id, userId);
     }
 
     private Recipe toDomain(RecipeEntity entity) {
-        return Recipe.hydrate(entity.getId(), entity.getName(), entity.getCategory(), entity.getDescription(), entity.getIngredients());
+        return Recipe.hydrate(entity.getId(), entity.getName(), entity.getCategory(), entity.getDescription(), entity.getIngredients(), entity.getOwnerId());
     }
 }

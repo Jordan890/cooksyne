@@ -25,14 +25,14 @@ public class RecipeServiceImpl implements RecipeService {
     }
 
     @Override
-    public Recipe getRecipeById(Long id) {
-        return recipeRepository.findById(id)
+    public Recipe getRecipeById(Long id, Long userId) {
+        return recipeRepository.findById(id, userId)
                 .orElseThrow(() -> new IllegalArgumentException("Recipe not found with id: " + id));
     }
 
     @Override
-    public void deleteRecipe(Long id) {
-        recipeRepository.delete(id);
+    public void deleteRecipe(Long id, Long userId) {
+        recipeRepository.delete(id, userId);
     }
 }
 
