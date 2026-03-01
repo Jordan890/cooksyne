@@ -19,3 +19,15 @@ spring:
 # Server settings
 server:
   port: ${PORT:8081}
+
+
+cartcook:
+  ai:
+    mode: ${AI_MODE:local}
+    local:
+      model-path: ${AI_LOCAL_MODEL_PATH:models/food-classifier.onnx}
+      tessdata-path: ${AI_LOCAL_TESSDATA_PATH:tessdata}
+    remote:
+      base-url: ${AI_REMOTE_BASE_URL:http://localhost:8090/api/ai}
+      api-key: ${AI_REMOTE_API_KEY:}
+      timeout-seconds: ${AI_REMOTE_TIMEOUT:30}
