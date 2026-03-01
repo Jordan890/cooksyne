@@ -21,6 +21,8 @@ dependencies {
 
     // Spring (local components)
     implementation("org.springframework.boot:spring-boot-starter")
+    implementation("com.microsoft.onnxruntime:onnxruntime:1.24.2")
+    implementation("net.sourceforge.tess4j:tess4j:5.18.0")
 
     // Testing
     testImplementation("org.junit.jupiter:junit-jupiter:5.10.0")
