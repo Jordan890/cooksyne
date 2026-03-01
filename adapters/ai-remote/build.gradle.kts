@@ -16,6 +16,7 @@ java {
 }
 
 dependencies {
+    implementation("org.springframework.boot:spring-boot-starter-webflux")
     // Core module
     implementation(project(":core"))
 

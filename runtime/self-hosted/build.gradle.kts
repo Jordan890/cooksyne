@@ -11,8 +11,8 @@ repositories {
 dependencies {
     implementation(project(":core"))
     implementation(project(":adapters:persistence-jpa"))
-    implementation(project(":adapters:auth-local"))
     implementation(project(":adapters:ai-local"))
+    implementation(project(":adapters:ai-remote"))
     implementation("org.springframework.boot:spring-boot-starter-web")
     compileOnly("org.projectlombok:lombok:1.18.30")
     annotationProcessor("org.projectlombok:lombok:1.18.30")

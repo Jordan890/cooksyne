@@ -9,7 +9,8 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
         "com.cartandcook.core",
         "com.cartandcook.adapters.persistencejpa",
         "com.cartandcook.selfhosted",
-        "com.cartandcook.adapters"
+        "com.cartandcook.adapters.ailocal",
+        "com.cartandcook.adapters.airemote"
 })
 @EnableJpaRepositories(basePackages = "com.cartandcook.adapters.persistencejpa")
 @EntityScan(basePackages = "com.cartandcook.adapters.persistencejpa")
