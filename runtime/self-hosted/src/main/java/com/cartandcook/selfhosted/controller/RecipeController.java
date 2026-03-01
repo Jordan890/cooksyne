@@ -1,9 +1,5 @@
 package com.cartandcook.selfhosted.controller;
 
-import com.cartandcook.core.ai.FoodClassifier;
-import com.cartandcook.core.ai.TextExtractionResult;
-import com.cartandcook.core.ai.TextExtractor;
-import com.cartandcook.core.ai.VisionResult;
 import com.cartandcook.core.domain.Recipe;
 import com.cartandcook.core.domain.User;
 import com.cartandcook.selfhosted.contracts.RecipeRequest;
@@ -14,9 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -26,16 +20,11 @@ public class RecipeController {
 
     private final RecipeServiceSpring recipeService;
     private final CurrentUserProvider currentUserProvider;
-    private final FoodClassifier foodClassifier;
-    private final TextExtractor textExtractor;
 
     public RecipeController(RecipeServiceSpring recipeService,
-                            CurrentUserProvider currentUserProvider,
-                            FoodClassifier foodClassifier, TextExtractor textExtractor) {
+                            CurrentUserProvider currentUserProvider) {
         this.recipeService = recipeService;
         this.currentUserProvider = currentUserProvider;
-        this.foodClassifier = foodClassifier;
-        this.textExtractor = textExtractor;
     }
     @GetMapping
     public ResponseEntity<List<RecipeResponse>> getAllRecipes(@AuthenticationPrincipal Jwt jwt) {
@@ -78,15 +67,6 @@ public class RecipeController {
         recipeService.deleteRecipe(id, currentUser.getId());
     }
 
-    @PostMapping("/classify")
-    public VisionResult classify(@RequestParam MultipartFile file) throws IOException {
-        return foodClassifier.classify(file.getBytes());
-    }
-
-    @PostMapping("/extract")
-    public TextExtractionResult extract(@RequestParam MultipartFile file) throws IOException {
-        return textExtractor.extract(file.getBytes());
-    }
 
     // Mapper to Response DTO
     private RecipeResponse toResponse(Recipe recipe) {
