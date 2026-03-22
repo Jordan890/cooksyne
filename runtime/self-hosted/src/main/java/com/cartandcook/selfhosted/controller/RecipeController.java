@@ -58,6 +58,7 @@ public class RecipeController {
                 request.getDescription(),
                 request.getImageUrl(),
                 request.getIngredients(),
+                request.getEstimatedCalories(),
                 currentUser.getId());
         Recipe saved = recipeService.upsertRecipe(recipe);
         return ResponseEntity.ok(toResponse(saved));
@@ -78,6 +79,7 @@ public class RecipeController {
         response.setDescription(recipe.getDescription());
         response.setImageUrl(recipe.getImageUrl());
         response.setIngredients(recipe.getIngredients());
+        response.setEstimatedCalories(recipe.getEstimatedCalories());
         return response;
     }
 }

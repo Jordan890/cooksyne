@@ -13,4 +13,5 @@ public class RecipeResponse {
     private String description;
     private String imageUrl;
     private List<IngredientQuantity> ingredients;
+    private Integer estimatedCalories;
 }

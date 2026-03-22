@@ -39,6 +39,9 @@ public class RecipeEntity {
     @Column(nullable = false)
     private List<IngredientQuantity> ingredients;
 
+    @Column
+    private Integer estimatedCalories;
+
     // --- new field for ownership ---
     @Column(nullable = false)
     private Long ownerId;
