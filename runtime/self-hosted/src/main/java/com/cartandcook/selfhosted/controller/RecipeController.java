@@ -5,6 +5,7 @@ import com.cartandcook.core.domain.User;
 import com.cartandcook.selfhosted.contracts.RecipeRequest;
 import com.cartandcook.selfhosted.contracts.RecipeResponse;
 import com.cartandcook.selfhosted.security.CurrentUserProvider;
+import com.cartandcook.selfhosted.service.ImageStorageService;
 import com.cartandcook.selfhosted.service.RecipeServiceSpring;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -20,11 +21,14 @@ public class RecipeController {
 
     private final RecipeServiceSpring recipeService;
     private final CurrentUserProvider currentUserProvider;
+    private final ImageStorageService imageStorageService;
 
     public RecipeController(RecipeServiceSpring recipeService,
-            CurrentUserProvider currentUserProvider) {
+            CurrentUserProvider currentUserProvider,
+            ImageStorageService imageStorageService) {
         this.recipeService = recipeService;
         this.currentUserProvider = currentUserProvider;
+        this.imageStorageService = imageStorageService;
     }
 
     @GetMapping
@@ -67,7 +71,11 @@ public class RecipeController {
     @DeleteMapping("/{id}")
     public void deleteRecipe(@AuthenticationPrincipal Jwt jwt, @PathVariable("id") Long id) {
         User currentUser = currentUserProvider.getCurrentUser(jwt);
+        Recipe recipe = recipeService.getRecipeById(id, currentUser.getId());
         recipeService.deleteRecipe(id, currentUser.getId());
+        if (recipe != null) {
+            imageStorageService.deleteByUrl(recipe.getImageUrl());
+        }
     }
 
     // Mapper to Response DTO

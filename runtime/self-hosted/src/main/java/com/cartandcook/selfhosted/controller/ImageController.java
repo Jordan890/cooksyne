@@ -2,7 +2,7 @@ package com.cartandcook.selfhosted.controller;
 
 import com.cartandcook.core.domain.User;
 import com.cartandcook.selfhosted.security.CurrentUserProvider;
-import org.springframework.beans.factory.annotation.Value;
+import com.cartandcook.selfhosted.service.ImageStorageService;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.http.HttpHeaders;
@@ -18,7 +18,6 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.Map;
 import java.util.UUID;
@@ -28,20 +27,11 @@ import java.util.UUID;
 public class ImageController {
 
     private final CurrentUserProvider currentUserProvider;
+    private final ImageStorageService imageStorageService;
 
-    @Value("${cartandcook.storage.image-dir:#{systemProperties['user.home'] + '/.cartandcook/images'}}")
-    private String imageDir;
-
-    private Path storagePath;
-
-    public ImageController(CurrentUserProvider currentUserProvider) {
+    public ImageController(CurrentUserProvider currentUserProvider, ImageStorageService imageStorageService) {
         this.currentUserProvider = currentUserProvider;
-    }
-
-    @PostConstruct
-    public void init() throws IOException {
-        storagePath = Paths.get(imageDir).toAbsolutePath().normalize();
-        Files.createDirectories(storagePath);
+        this.imageStorageService = imageStorageService;
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -66,6 +56,7 @@ public class ImageController {
         }
 
         // Store in a per-user subdirectory
+        Path storagePath = imageStorageService.getStoragePath();
         Path userDir = storagePath.resolve(userId).normalize();
         if (!userDir.startsWith(storagePath)) {
             return ResponseEntity.badRequest().body(Map.of("error", "Invalid user path."));
@@ -100,6 +91,7 @@ public class ImageController {
             return ResponseEntity.badRequest().build();
         }
 
+        Path storagePath = imageStorageService.getStoragePath();
         Path file = storagePath.resolve(userId).resolve(filename).normalize();
 
         if (!file.startsWith(storagePath) || !Files.exists(file)) {
