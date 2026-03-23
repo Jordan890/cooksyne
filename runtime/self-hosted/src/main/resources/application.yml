@@ -25,17 +25,3 @@ cartandcook:
     config-encryption-key: ${CONFIG_ENCRYPTION_KEY:change-this-in-production}
   runtime:
     auto-restart-delay-ms: ${AUTO_RESTART_DELAY_MS:1500}
-  ai:
-    provider: ${AI_PROVIDER:}
-    ollama:
-      base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
-      model: ${OLLAMA_MODEL:llava-phi3}
-    openai:
-      api-key: ${OPENAI_API_KEY:}
-      model: ${OPENAI_MODEL:gpt-4o-mini}
-    bedrock:
-      region: ${AWS_REGION:us-east-1}
-      model-id: ${BEDROCK_MODEL_ID:anthropic.claude-3-haiku-20240307-v1:0}
-    huggingface:
-      api-key: ${HUGGINGFACE_API_KEY:}
-      model: ${HUGGINGFACE_MODEL:Salesforce/blip-image-captioning-large}

@@ -35,16 +35,7 @@ public class RuntimeConfigService {
             "dbUsername",
             "dbPassword",
             "oauth2IssuerUri",
-            "port",
-            "aiProvider",
-            "ollamaBaseUrl",
-            "ollamaModel",
-            "openAiApiKey",
-            "openAiModel",
-            "awsRegion",
-            "bedrockModelId",
-            "huggingFaceApiKey",
-            "huggingFaceModel");
+            "port");
 
     private final SpringDataUserRuntimeConfigRepository repository;
     private final ConfigCryptoService cryptoService;
@@ -133,25 +124,6 @@ public class RuntimeConfigService {
             changed.add("oauth2IssuerUri");
         if (!Objects.equals(previous.getPort(), current.getPort()))
             changed.add("port");
-
-        if (!Objects.equals(previous.getAiProvider(), current.getAiProvider()))
-            changed.add("aiProvider");
-        if (!Objects.equals(previous.getOllamaBaseUrl(), current.getOllamaBaseUrl()))
-            changed.add("ollamaBaseUrl");
-        if (!Objects.equals(previous.getOllamaModel(), current.getOllamaModel()))
-            changed.add("ollamaModel");
-        if (!Objects.equals(previous.getOpenAiApiKey(), current.getOpenAiApiKey()))
-            changed.add("openAiApiKey");
-        if (!Objects.equals(previous.getOpenAiModel(), current.getOpenAiModel()))
-            changed.add("openAiModel");
-        if (!Objects.equals(previous.getAwsRegion(), current.getAwsRegion()))
-            changed.add("awsRegion");
-        if (!Objects.equals(previous.getBedrockModelId(), current.getBedrockModelId()))
-            changed.add("bedrockModelId");
-        if (!Objects.equals(previous.getHuggingFaceApiKey(), current.getHuggingFaceApiKey()))
-            changed.add("huggingFaceApiKey");
-        if (!Objects.equals(previous.getHuggingFaceModel(), current.getHuggingFaceModel()))
-            changed.add("huggingFaceModel");
 
         return changed;
     }
