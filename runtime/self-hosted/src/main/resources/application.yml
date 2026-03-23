@@ -2,7 +2,7 @@ spring:
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/cart_and_cook}
     username: ${DB_USERNAME:postgres}
-    password: ${DB_PASSWORD:password}
+    password: ${DB_PASSWORD:}
     driver-class-name: org.postgresql.Driver
 
   jpa:
@@ -20,8 +20,11 @@ spring:
 server:
   port: ${PORT:8081}
 
-
 cartandcook:
+  security:
+    config-encryption-key: ${CONFIG_ENCRYPTION_KEY:change-this-in-production}
+  runtime:
+    auto-restart-delay-ms: ${AUTO_RESTART_DELAY_MS:1500}
   ai:
     provider: ${AI_PROVIDER:}
     ollama:
