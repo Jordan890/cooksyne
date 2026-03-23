@@ -24,4 +24,5 @@ cartandcook:
   security:
     config-encryption-key: ${CONFIG_ENCRYPTION_KEY:change-this-in-production}
   runtime:
+    db-safe-mode: ${DB_SAFE_MODE:false}
     auto-restart-delay-ms: ${AUTO_RESTART_DELAY_MS:1500}

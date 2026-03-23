@@ -27,6 +27,15 @@ public class UserRuntimeConfigEntity {
     private String dbPassword;
 
     @Column
+    private String lastKnownGoodDbUrl;
+
+    @Column
+    private String lastKnownGoodDbUsername;
+
+    @Column
+    private String lastKnownGoodDbPassword;
+
+    @Column
     private String oauth2IssuerUri;
 
     @Column

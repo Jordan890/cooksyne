@@ -12,6 +12,8 @@ public class RuntimeConfigResponse {
     private String oauth2IssuerUri;
     private String port;
     private boolean autoRestartOnConfigSave;
+    private boolean dbSafeMode;
+    private boolean lastKnownGoodDbConfigured;
 
     private String aiProvider;
     private String ollamaBaseUrl;
