@@ -58,7 +58,8 @@ export DB_USERNAME='postgres'
 export DB_PASSWORD=''
 export OAUTH2_ISSUER_URI='http://localhost:8080/realms/cart_and_cook'
 export PORT='8081'
-export CONFIG_ENCRYPTION_KEY='replace-with-strong-secret'
+export OPENAI_API_KEY='your-openai-key'
+export HUGGINGFACE_API_KEY='your-huggingface-key'
 ```
 
 4. Start backend runtime:
@@ -107,13 +108,14 @@ The following defaults apply from `runtime/self-hosted/src/main/resources/applic
 
 - `PORT` default: `8081`
 
-### Runtime Safety and Encryption
+### AI API Keys (Environment Variables)
 
-- `CONFIG_ENCRYPTION_KEY` default: `change-this-in-production`
+- `OPENAI_API_KEY` default: empty
+- `HUGGINGFACE_API_KEY` default: empty
 
-Important for production:
+Important:
 
-- You must override `CONFIG_ENCRYPTION_KEY` with a strong secret.
+- These keys are read from environment variables at startup and are not stored in runtime settings.
 
 ## Runtime Configuration API
 
@@ -140,11 +142,9 @@ Default runtime values when unset:
 - `aiProvider`: empty (no provider selected)
 - `ollamaBaseUrl`: `http://localhost:11434`
 - `ollamaModel`: `llava-phi3`
-- `openAiApiKey`: empty
 - `openAiModel`: `gpt-4o-mini`
 - `awsRegion`: `us-east-1`
 - `bedrockModelId`: `anthropic.claude-3-haiku-20240307-v1:0`
-- `huggingFaceApiKey`: empty
 - `huggingFaceModel`: `Salesforce/blip-image-captioning-large`
 
 ## Core Runtime Settings (Startup Environment Variables)
@@ -156,7 +156,8 @@ Set these in your shell/process manager before launching the backend.
 - `DB_PASSWORD`
 - `OAUTH2_ISSUER_URI`
 - `PORT`
-- `CONFIG_ENCRYPTION_KEY`
+- `OPENAI_API_KEY` (required for OpenAI provider)
+- `HUGGINGFACE_API_KEY` (required for Hugging Face provider)
 
 Example:
 
@@ -166,7 +167,8 @@ export DB_USERNAME='postgres'
 export DB_PASSWORD=''
 export OAUTH2_ISSUER_URI='http://localhost:8080/realms/cart_and_cook'
 export PORT='8081'
-export CONFIG_ENCRYPTION_KEY='replace-with-strong-secret'
+export OPENAI_API_KEY='your-openai-key'
+export HUGGINGFACE_API_KEY='your-huggingface-key'
 ./gradlew :runtime:self-hosted:bootRun
 ```
 
@@ -245,7 +247,8 @@ Set these when launching runtime service:
 - `DB_PASSWORD`
 - `OAUTH2_ISSUER_URI`
 - `PORT`
-- `CONFIG_ENCRYPTION_KEY`
+- `OPENAI_API_KEY` (required for OpenAI provider)
+- `HUGGINGFACE_API_KEY` (required for Hugging Face provider)
 - `CARTANDCOOK_STORAGE_IMAGE_DIR` (optional override for image storage directory via Spring property binding style if configured externally)
 
 ## Typical Local Development Workflow
@@ -300,7 +303,7 @@ From repository root:
 
 Before production deployment:
 
-1. Set strong `CONFIG_ENCRYPTION_KEY`.
+1. Provide API keys with environment variables for any AI provider that requires them.
 2. Use managed secret delivery for DB/API credentials.
 3. Disable overly verbose SQL logging if not needed.
 4. Place process under a supervisor if relying on auto-restart behavior.

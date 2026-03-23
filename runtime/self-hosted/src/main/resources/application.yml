@@ -19,9 +19,3 @@ spring:
 # Server settings
 server:
   port: ${PORT:8081}
-
-cartandcook:
-  security:
-    config-encryption-key: ${CONFIG_ENCRYPTION_KEY:change-this-in-production}
-  runtime:
-    db-safe-mode: ${DB_SAFE_MODE:false}

@@ -12,21 +12,15 @@ public class RuntimeConfigService {
     private static final String DEFAULT_AI_PROVIDER = "";
     private static final String DEFAULT_OLLAMA_BASE_URL = "http://localhost:11434";
     private static final String DEFAULT_OLLAMA_MODEL = "llava-phi3";
-    private static final String DEFAULT_OPENAI_API_KEY = "";
     private static final String DEFAULT_OPENAI_MODEL = "gpt-4o-mini";
     private static final String DEFAULT_AWS_REGION = "us-east-1";
     private static final String DEFAULT_BEDROCK_MODEL_ID = "anthropic.claude-3-haiku-20240307-v1:0";
-    private static final String DEFAULT_HF_API_KEY = "";
     private static final String DEFAULT_HF_MODEL = "Salesforce/blip-image-captioning-large";
 
     private final SpringDataUserRuntimeConfigRepository repository;
-    private final ConfigCryptoService cryptoService;
 
-    public RuntimeConfigService(
-            SpringDataUserRuntimeConfigRepository repository,
-            ConfigCryptoService cryptoService) {
+    public RuntimeConfigService(SpringDataUserRuntimeConfigRepository repository) {
         this.repository = repository;
-        this.cryptoService = cryptoService;
     }
 
     public RuntimeConfigResponse get() {
@@ -42,11 +36,9 @@ public class RuntimeConfigService {
         entity.setAiProvider(normalize(request.getAiProvider(), DEFAULT_AI_PROVIDER));
         entity.setOllamaBaseUrl(normalize(request.getOllamaBaseUrl(), DEFAULT_OLLAMA_BASE_URL));
         entity.setOllamaModel(normalize(request.getOllamaModel(), DEFAULT_OLLAMA_MODEL));
-        entity.setOpenAiApiKey(encryptSecret(normalize(request.getOpenAiApiKey(), DEFAULT_OPENAI_API_KEY)));
         entity.setOpenAiModel(normalize(request.getOpenAiModel(), DEFAULT_OPENAI_MODEL));
         entity.setAwsRegion(normalize(request.getAwsRegion(), DEFAULT_AWS_REGION));
         entity.setBedrockModelId(normalize(request.getBedrockModelId(), DEFAULT_BEDROCK_MODEL_ID));
-        entity.setHuggingFaceApiKey(encryptSecret(normalize(request.getHuggingFaceApiKey(), DEFAULT_HF_API_KEY)));
         entity.setHuggingFaceModel(normalize(request.getHuggingFaceModel(), DEFAULT_HF_MODEL));
 
         UserRuntimeConfigEntity saved = repository.save(entity);
@@ -59,11 +51,9 @@ public class RuntimeConfigService {
         response.setAiProvider(coalesce(e.getAiProvider(), DEFAULT_AI_PROVIDER));
         response.setOllamaBaseUrl(coalesce(e.getOllamaBaseUrl(), DEFAULT_OLLAMA_BASE_URL));
         response.setOllamaModel(coalesce(e.getOllamaModel(), DEFAULT_OLLAMA_MODEL));
-        response.setOpenAiApiKey(coalesce(decryptSecret(e.getOpenAiApiKey()), DEFAULT_OPENAI_API_KEY));
         response.setOpenAiModel(coalesce(e.getOpenAiModel(), DEFAULT_OPENAI_MODEL));
         response.setAwsRegion(coalesce(e.getAwsRegion(), DEFAULT_AWS_REGION));
         response.setBedrockModelId(coalesce(e.getBedrockModelId(), DEFAULT_BEDROCK_MODEL_ID));
-        response.setHuggingFaceApiKey(coalesce(decryptSecret(e.getHuggingFaceApiKey()), DEFAULT_HF_API_KEY));
         response.setHuggingFaceModel(coalesce(e.getHuggingFaceModel(), DEFAULT_HF_MODEL));
 
         return response;
@@ -84,15 +74,4 @@ public class RuntimeConfigService {
         return value == null ? defaultValue : value;
     }
 
-    private String encryptSecret(String value) {
-        if (value == null)
-            return null;
-        return cryptoService.encrypt(value);
-    }
-
-    private String decryptSecret(String value) {
-        if (value == null)
-            return null;
-        return cryptoService.decrypt(value);
-    }
 }

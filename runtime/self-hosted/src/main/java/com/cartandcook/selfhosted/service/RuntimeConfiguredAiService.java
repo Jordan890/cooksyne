@@ -10,6 +10,7 @@ import com.cartandcook.selfhosted.contracts.RuntimeConfigResponse;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -26,8 +27,8 @@ import java.util.Locale;
 import java.util.Map;
 
 /**
- * Runtime AI service that reads provider + credentials from persisted runtime
- * config.
+ * Runtime AI service that reads provider/model settings from persisted runtime
+ * config and API keys from startup environment variables.
  */
 @Service
 @Primary
@@ -35,10 +36,18 @@ public class RuntimeConfiguredAiService implements AiService {
 
     private final RuntimeConfigService runtimeConfigService;
     private final ObjectMapper objectMapper;
+    private final String openAiApiKey;
+    private final String huggingFaceApiKey;
 
-    public RuntimeConfiguredAiService(RuntimeConfigService runtimeConfigService, ObjectMapper objectMapper) {
+    public RuntimeConfiguredAiService(
+            RuntimeConfigService runtimeConfigService,
+            ObjectMapper objectMapper,
+            @Value("${OPENAI_API_KEY:}") String openAiApiKey,
+            @Value("${HUGGINGFACE_API_KEY:}") String huggingFaceApiKey) {
         this.runtimeConfigService = runtimeConfigService;
         this.objectMapper = objectMapper;
+        this.openAiApiKey = openAiApiKey;
+        this.huggingFaceApiKey = huggingFaceApiKey;
     }
 
     @Override
@@ -92,13 +101,18 @@ public class RuntimeConfiguredAiService implements AiService {
     }
 
     private RecipeAnalysis analyzeWithOpenAi(byte[] image, String prompt, RuntimeConfigResponse cfg) {
+        if (openAiApiKey == null || openAiApiKey.isBlank()) {
+            throw new AiServiceException(
+                    "OPENAI_API_KEY is not set. Configure it as an environment variable before startup.");
+        }
+
         byte[] processed = AiImageProcessor.preprocessImage(image);
         String base64 = Base64.getEncoder().encodeToString(processed);
         String imageDataUrl = "data:image/jpeg;base64," + base64;
 
         WebClient webClient = WebClient.builder()
                 .baseUrl("https://api.openai.com")
-                .defaultHeader("Authorization", "Bearer " + cfg.getOpenAiApiKey())
+                .defaultHeader("Authorization", "Bearer " + openAiApiKey)
                 .build();
 
         Map<String, Object> requestBody = Map.of(
@@ -128,13 +142,18 @@ public class RuntimeConfiguredAiService implements AiService {
     }
 
     private RecipeAnalysis analyzeWithHuggingFace(byte[] image, String prompt, RuntimeConfigResponse cfg) {
+        if (huggingFaceApiKey == null || huggingFaceApiKey.isBlank()) {
+            throw new AiServiceException(
+                    "HUGGINGFACE_API_KEY is not set. Configure it as an environment variable before startup.");
+        }
+
         byte[] processed = AiImageProcessor.preprocessImage(image);
         String base64 = Base64.getEncoder().encodeToString(processed);
         String imageDataUrl = "data:image/jpeg;base64," + base64;
 
         WebClient webClient = WebClient.builder()
                 .baseUrl("https://api-inference.huggingface.co")
-                .defaultHeader("Authorization", "Bearer " + cfg.getHuggingFaceApiKey())
+                .defaultHeader("Authorization", "Bearer " + huggingFaceApiKey)
                 .build();
 
         String uri = "/models/" + cfg.getHuggingFaceModel() + "/v1/chat/completions";
