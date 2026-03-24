@@ -102,6 +102,10 @@ public final class AiPrompts {
       - estimatedCalories: Total calories for the entire recipe (must equal the sum of all ingredient calories)
 
       Ingredient extraction rules:
+      - Determine the title first by reading the top of the page/screenshot
+      - Prefer the most prominent heading near the top (H1/title-style text) as the dish name
+      - Ignore site branding, author names, section labels, and navigation text when choosing the title
+      - If multiple candidates exist, choose the top-most, dish-specific heading
       - Extract all ingredients listed in the recipe
       - Preserve the amounts as written in the recipe
       - Use normalized common food names, not descriptions
