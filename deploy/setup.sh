@@ -118,14 +118,19 @@ if [[ "${1:-}" == "--no-start" ]]; then
   info "Skipping container startup (--no-start flag)."
   echo ""
   log "Setup complete! Start with:"
-  info "  docker compose${PROFILE_ARGS} up -d --build"
+  info "  docker compose${PROFILE_ARGS} up -d"
   exit 0
 fi
 
 echo ""
-info "Building and starting containers ..."
+info "Pulling latest images ..."
 # shellcheck disable=SC2086
-docker compose${PROFILE_ARGS} up -d --build
+docker compose${PROFILE_ARGS} pull
+
+echo ""
+info "Starting containers ..."
+# shellcheck disable=SC2086
+docker compose${PROFILE_ARGS} up -d
 
 echo ""
 log "All containers started!"

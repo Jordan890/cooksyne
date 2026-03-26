@@ -1,11 +1,19 @@
 # ─────────────────────────────────────────────────────────────────────
-# Cart & Cook – Docker Compose
-# Copy .env.example → .env and fill in your values, then:
-#   docker compose up -d
+# Cart & Cook – Docker Compose (Self-Hosted)
+#
+# Install:
+#   1. Download docker-compose.yml and .env.example
+#   2. cp .env.example .env  (edit as needed)
+#   3. docker compose up -d
+#
+# Update:
+#   docker compose pull && docker compose up -d
 #
 # Using external Postgres/Keycloak? Set USE_EXTERNAL_DB=true and/or
 # USE_EXTERNAL_KEYCLOAK=true in .env, then provide connection details.
 # ─────────────────────────────────────────────────────────────────────
+
+name: cart-and-cook
 
 services:
   # ── PostgreSQL ──────────────────────────────────────────────────────
@@ -62,12 +70,7 @@ services:
 
   # ── Backend API ────────────────────────────────────────────────────
   backend:
-    image: ${BACKEND_IMAGE:-cart-and-cook-api:latest}
-    build:
-      context: ../
-      dockerfile: Dockerfile
-      args:
-        APP_VERSION: ${APP_VERSION:-0.0.0}
+    image: ghcr.io/jordan890/cart-and-cook-api:${CART_AND_COOK_VERSION:-release}
     restart: unless-stopped
     environment:
       DB_URL: ${DB_URL:-jdbc:postgresql://postgres:5432/${DB_NAME:-cart_and_cook}}
@@ -103,12 +106,7 @@ services:
 
   # ── Frontend ───────────────────────────────────────────────────────
   frontend:
-    image: ${FRONTEND_IMAGE:-cart-and-cook-ui:latest}
-    build:
-      context: ../../cart_and_cook_ui/cart-and-cook-ui
-      dockerfile: Dockerfile
-      args:
-        APP_VERSION: ${APP_VERSION:-0.0.0}
+    image: ghcr.io/jordan890/cart-and-cook-ui:${CART_AND_COOK_VERSION:-release}
     restart: unless-stopped
     environment:
       API_URL: ${API_URL:-http://localhost:8081}

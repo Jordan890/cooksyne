@@ -301,21 +301,38 @@ From repository root:
 
 ## Docker Deployment (Self-Hosted)
 
-The `deploy/` directory contains everything needed to run the full stack with Docker Compose.
+Users don't need to clone the source repos. Just download two files and run.
 
 ### Quick Start
 
 ```bash
-cd deploy
+mkdir cart-and-cook && cd cart-and-cook
+curl -LO https://raw.githubusercontent.com/Jordan890/cart_and_cook/main/deploy/docker-compose.yml
+curl -LO https://raw.githubusercontent.com/Jordan890/cart_and_cook/main/deploy/.env.example
+cp .env.example .env    # edit .env with your values
+docker compose up -d
+```
+
+Or use the setup script (generates secrets automatically):
+
+```bash
+curl -LO https://raw.githubusercontent.com/Jordan890/cart_and_cook/main/deploy/setup.sh
 chmod +x setup.sh
 ./setup.sh
 ```
 
-This will:
+### Updating
 
-1. Copy `.env.example` to `.env`
-2. Generate random passwords for PostgreSQL and Keycloak admin
-3. Build and start all containers (PostgreSQL, Keycloak, backend, frontend)
+```bash
+docker compose pull
+docker compose up -d
+```
+
+To pin a specific version instead of latest, set `CART_AND_COOK_VERSION` in `.env`:
+
+```bash
+CART_AND_COOK_VERSION=1.0.0
+```
 
 ### Services
 
@@ -395,29 +412,22 @@ After containers start, configure Keycloak:
 4. Create a user account and set a password
 5. Open `http://localhost:3000` and log in
 
-### Using Prebuilt Images
+### Building Images Locally (Contributors)
 
-To skip building locally, set image names in `.env`:
-
-```bash
-BACKEND_IMAGE=ghcr.io/jordan890/cart-and-cook-api:latest
-FRONTEND_IMAGE=ghcr.io/jordan890/cart-and-cook-ui:latest
-```
-
-Then run:
-
-```bash
-docker compose up -d
-```
-
-### Building Images Manually
+If you're developing and want to build from source instead of pulling published images:
 
 ```bash
 # Backend (from cart_and_cook root)
-docker build -t cart-and-cook-api:latest --build-arg APP_VERSION=1.0.0 .
+docker build -t ghcr.io/jordan890/cart-and-cook-api:local .
 
 # Frontend (from cart_and_cook_ui/cart-and-cook-ui)
-docker build -t cart-and-cook-ui:latest --build-arg APP_VERSION=1.0.0 .
+docker build -t ghcr.io/jordan890/cart-and-cook-ui:local .
+```
+
+Then set in `.env`:
+
+```bash
+CART_AND_COOK_VERSION=local
 ```
 
 ### Health Checks
@@ -466,10 +476,21 @@ To use it, add a `proxy` service to `docker-compose.yml` and remove the port map
 
 ### Versioning
 
-The `VERSION` file in the repository root contains the current version. Pass it as a build arg:
+Images are tagged with version numbers and the `release` tag (latest stable). Control which version to use via `.env`:
 
 ```bash
-docker build --build-arg APP_VERSION=$(cat VERSION) -t cart-and-cook-api:$(cat VERSION) .
+# Latest stable (default)
+CART_AND_COOK_VERSION=release
+
+# Specific version
+CART_AND_COOK_VERSION=1.2.0
+```
+
+Then pull the new version:
+
+```bash
+docker compose pull
+docker compose up -d
 ```
 
 ### Accessing Ollama from Docker
