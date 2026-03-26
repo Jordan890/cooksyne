@@ -507,3 +507,17 @@ Before production deployment:
 4. Enable TLS via the reverse proxy config or a load balancer.
 5. Restrict CORS origins to trusted domains only — set `CORS_ALLOWED_ORIGINS` in `.env`.
 6. Consider switching `spring.jpa.hibernate.ddl-auto` from `update` to `validate` and using a migration tool (Flyway/Liquibase) for schema management.
+
+## Windows Users
+
+Docker Compose and image pulls work the same on Windows (via Docker Desktop or WSL2). The `setup.sh` script requires a Bash shell, so either:
+
+- **Run from WSL2** (recommended): Open a WSL terminal and run `bash setup.sh` as normal.
+- **Skip the script** and do the three steps manually in PowerShell:
+
+```powershell
+Copy-Item .env.example .env
+# Edit .env with your settings
+docker compose pull
+docker compose up -d
+```
