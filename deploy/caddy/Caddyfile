@@ -1,30 +1,42 @@
-# Caddy reverse proxy configuration for Cart & Cook
-# This file proxies path prefixes to the internal Docker services.
+# Redirect all HTTP to HTTPS
+<dns> {
+    redir https://{host}{uri} permanent
+}
 
-# Listen on container port 80 (host port is mapped via docker-compose)
-:80
+# Main HTTPS site
+https://<dns> {
+    encode gzip
 
-handle_path /auth/* {
-    reverse_proxy keycloak:8080 {
-        header_up Host {http.request.host}
-        header_up X-Forwarded-Proto {http.request.scheme}
-        header_up X-Forwarded-For {http.request.remote}
-        header_up X-Forwarded-Host {http.request.host}
+    tls /etc/caddy/certs/cert.pem /etc/caddy/certs/key.pem
+
+    route {
+
+        # Keycloak
+        handle /auth* {
+            reverse_proxy keycloak:8080 {
+                header_up Host {http.request.host}
+                header_up X-Forwarded-Proto {http.request.scheme}
+                # Also provide Forwarded header so upstream can detect original proto
+                header_up Forwarded proto={http.request.scheme};host={http.request.host}
+                header_up X-Forwarded-For {http.request.remote}
+                header_up X-Forwarded-Host {http.request.host}
+            }
+        }
+
+        # Backend API
+        handle_path /cart-and-cook/api/* {
+            uri strip_prefix /cart-and-cook/api
+            reverse_proxy backend:8081
+        }
+
+        # Angular SPA
+        handle_path /cook-and-cook* {
+            reverse_proxy frontend:80
+        }
+
+        # SPA fallback
+        handle {
+            reverse_proxy frontend:80
+        }
     }
-}
-
-handle_path /cook-and-cart* {
-    uri strip_prefix /cook-and-cart
-    reverse_proxy frontend:80
-}
-
-handle_path /cart-and-cook/api/* {
-    uri strip_prefix /cart-and-cook/api
-    reverse_proxy backend:8081
-}
-
-# Fallback: serve frontend for other /cook-and-cart paths (SPA)
-handle_path /cook-and-cart* {
-    uri strip_prefix /cook-and-cart
-    reverse_proxy frontend:80
 }
