@@ -12,12 +12,27 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.Arrays;
 import java.util.List;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
+import org.springframework.security.oauth2.core.OAuth2TokenValidator;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
+import org.springframework.security.oauth2.core.OAuth2TokenValidatorResult;
+import org.springframework.security.oauth2.core.OAuth2Error;
+import org.springframework.security.oauth2.jwt.JwtValidators;
 
 @Configuration
 public class SecurityConfig {
 
     @org.springframework.beans.factory.annotation.Value("${cors.allowed-origins:http://localhost:4200,http://localhost:9090,http://localhost:3000}")
     private String allowedOriginsStr;
+
+    @Value("${spring.security.oauth2.resourceserver.jwt.issuer-uri:http://localhost:8080/realms/cart_and_cook}")
+    private String issuerUri;
+
+    @Value("${spring.security.oauth2.resourceserver.jwt.audiences:cart-and-cook-api}")
+    private String expectedAudiencesRaw;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -30,8 +45,26 @@ public class SecurityConfig {
                         .requestMatchers("/actuator/health").permitAll()
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> {
-                }));
+                }))
+        // ensure a JwtDecoder bean is available that validates audience
+        ;
         return http.build();
+    }
+
+    @Bean
+    public JwtDecoder jwtDecoder() {
+        NimbusJwtDecoder jwtDecoder = NimbusJwtDecoder.withJwkSetUri(this.issuerUri + "/protocol/openid-connect/certs")
+                .build();
+
+        // default validator (exp, nbf, issuer)
+        OAuth2TokenValidator<Jwt> withIssuer = JwtValidators.createDefaultWithIssuer(this.issuerUri);
+        // audience validator - split comma/space separated raw value
+        List<String> audList = List.of(this.expectedAudiencesRaw.split("\\s*,\\s*"));
+        AudienceValidator audienceValidator = new AudienceValidator(audList);
+
+        OAuth2TokenValidator<Jwt> validator = new DelegatingOAuth2TokenValidator<>(withIssuer, audienceValidator);
+        jwtDecoder.setJwtValidator(validator);
+        return jwtDecoder;
     }
 
     @Bean
