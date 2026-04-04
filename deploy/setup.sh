@@ -129,9 +129,14 @@ if [[ "${1:-}" == "--no-start" ]]; then
 fi
 
 echo ""
-info "Pulling latest images ..."
+info "Building custom images (Keycloak TLS, Caddy Tailscale) ..."
 # shellcheck disable=SC2086
-docker compose${PROFILE_ARGS} pull
+docker compose${PROFILE_ARGS} build
+
+echo ""
+info "Pulling remaining images ..."
+# shellcheck disable=SC2086
+docker compose${PROFILE_ARGS} pull --ignore-buildable
 
 echo ""
 info "Starting containers ..."
@@ -146,6 +151,7 @@ info "  Frontend:  http://localhost:${FRONTEND_PORT:-3000}"
 info "  Backend:   http://localhost:${BACKEND_PORT:-8081}"
 if [[ "$USE_EXTERNAL_KEYCLOAK" != "true" ]]; then
   info "  Keycloak:  http://localhost:${KEYCLOAK_PORT:-8080}"
+  info "  Keycloak (HTTPS): https://localhost:${KEYCLOAK_HTTPS_PORT:-8443}"
 fi
 if [[ "$USE_EXTERNAL_DB" != "true" ]]; then
   info "  Postgres:  localhost:${DB_PORT:-5432}"

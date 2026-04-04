@@ -1,22 +1,42 @@
+# ─────────────────────────────────────────────────────────────────────
+# Caddyfile – Cart & Cook reverse proxy with Tailscale TLS
+#
+# When TS_HOSTNAME is set, Caddy obtains TLS certificates from
+# Tailscale automatically (no manual OpenSSL cert generation needed).
+#
+# Usage without Tailscale: replace the {$TS_HOSTNAME} blocks with
+# your domain name and a standard tls directive.
+# ─────────────────────────────────────────────────────────────────────
+
+# Tailscale transport module (loaded via caddy-tailscale plugin)
+{
+    tailscale
+}
+
 # Redirect all HTTP to HTTPS
-<dns> {
+http:// {
     redir https://{host}{uri} permanent
 }
 
-# Main HTTPS site
-https://<dns> {
+# Main HTTPS site — Tailscale manages TLS automatically
+{$TS_HOSTNAME:localhost} {
     encode gzip
 
-    tls /etc/caddy/certs/cert.pem /etc/caddy/certs/key.pem
+    # Tailscale TLS — no manual cert paths needed
+    tls {
+        get_certificate tailscale
+    }
 
     route {
 
-        # Keycloak
+        # Keycloak — proxy to HTTPS (Keycloak has its own TLS cert)
         handle /auth* {
-            reverse_proxy keycloak:8080 {
+            reverse_proxy https://keycloak:8443 {
+                transport http {
+                    tls_insecure_skip_verify
+                }
                 header_up Host {http.request.host}
                 header_up X-Forwarded-Proto {http.request.scheme}
-                # Also provide Forwarded header so upstream can detect original proto
                 header_up Forwarded proto={http.request.scheme};host={http.request.host}
                 header_up X-Forwarded-For {http.request.remote}
                 header_up X-Forwarded-Host {http.request.host}

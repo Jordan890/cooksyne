@@ -25,9 +25,12 @@ services:
       timeout: 5s
       retries: 5
 
-  # ── Keycloak ────────────────────────────────────────────────
+  # ── Keycloak (custom image with built-in TLS cert) ─────────
   keycloak:
-    image: quay.io/keycloak/keycloak:26.2
+    build:
+      context: ./keycloak
+      dockerfile: Dockerfile
+    image: cart-and-cook/keycloak:latest
     restart: unless-stopped
     command: start-dev
     environment:
@@ -39,6 +42,7 @@ services:
       KC_HOSTNAME: ${KEYCLOAK_FRONTEND_URL:-}
       KC_PROXY: edge
       KC_HTTP_PORT: 8080
+      KC_HTTPS_PORT: 8443
       KC_HEALTH_ENABLED: "true"
       KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?KEYCLOAK_ADMIN_PASSWORD is required}
@@ -47,19 +51,30 @@ services:
       KC_HTTP_RELATIVE_PATH: /auth
       # New: modern Keycloak/Quarkus recognizes KC_FRONTEND_URL — forward same value
       KC_FRONTEND_URL: ${KEYCLOAK_FRONTEND_URL:-}
+    volumes:
+      # Shared volume — entrypoint copies CA cert + truststore here for other containers
+      - keycloak_tls:/opt/keycloak/shared-tls
     ports:
       - "${KEYCLOAK_PORT:-8080}:8080"
+      - "${KEYCLOAK_HTTPS_PORT:-8443}:8443"
 
   # ── Backend API ─────────────────────────────────────────────
   backend:
     image: ghcr.io/jordan890/cart-and-cook-api:${CART_AND_COOK_VERSION:-release}
     restart: unless-stopped
+    volumes:
+      # Mount Keycloak's CA cert so the JVM can trust it for HTTPS token validation
+      - keycloak_tls:/etc/keycloak-tls:ro
     environment:
       DB_URL: ${DB_URL:-jdbc:postgresql://postgres:5432/${DB_NAME:-cart_and_cook}}
       DB_USERNAME: ${DB_USERNAME:-postgres}
       DB_PASSWORD: ${DB_PASSWORD}
-      OAUTH2_ISSUER_URI: ${OAUTH2_ISSUER_URI:-http://localhost:8080/auth/realms/cart_and_cook}
+      OAUTH2_ISSUER_URI: ${OAUTH2_ISSUER_URI:-https://keycloak:8443/auth/realms/cart_and_cook}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:4200,http://localhost:9090,http://localhost:3000}
+      # Import Keycloak's self-signed CA into the JVM trust store
+      JAVA_TOOL_OPTIONS: >-
+        -Djavax.net.ssl.trustStore=/etc/keycloak-tls/truststore.jks
+        -Djavax.net.ssl.trustStorePassword=changeit
       PORT: 8081
       # AI provider
       CARTANDCOOK_AI_PROVIDER: ${AI_PROVIDER:-ollama}
@@ -75,6 +90,8 @@ services:
       CARTANDCOOK_AI_HUGGINGFACE_MODEL: ${HUGGINGFACE_MODEL:-Salesforce/blip-image-captioning-large}
     ports:
       - "8081:8081"
+    depends_on:
+      - keycloak
     healthcheck:
       test: ["CMD", "curl", "-sf", "http://localhost:8081/actuator/health"]
       interval: 30s
@@ -95,15 +112,23 @@ services:
       backend:
         condition: service_healthy
 
-  # ── Caddy Reverse Proxy ─────────────────────────────────────
+  # ── Caddy Reverse Proxy (custom image with Tailscale) ──────
   caddy:
-    image: caddy:2-alpine
+    build:
+      context: ./caddy
+      dockerfile: Dockerfile
+    image: cart-and-cook/caddy-tailscale:latest
     restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
     volumes:
       - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
-      - ./caddy/certs:/etc/caddy/certs:ro
+      - ts_state:/var/run/tailscale
+    environment:
+      TS_AUTHKEY: ${TS_AUTHKEY:-}
+      TS_HOSTNAME: ${TS_HOSTNAME:-cart-and-cook}
     ports:
       - "80:80"
       - "443:443"
@@ -116,3 +141,5 @@ volumes:
   pgdata:
   caddy_data:
   caddy_config:
+  keycloak_tls:
+  ts_state:
