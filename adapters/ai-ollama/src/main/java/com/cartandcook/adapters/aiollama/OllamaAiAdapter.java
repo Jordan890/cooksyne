@@ -69,6 +69,8 @@ public class OllamaAiAdapter implements AiService {
 
     private String sendRequest(Map<String, Object> requestBody) {
         try {
+            long start = System.currentTimeMillis();
+            log.info("Ollama: sending request to model '{}'", properties.getModel());
             String response = webClient.post()
                     .uri("/api/chat")
                     .header("Content-Type", "application/json")
@@ -82,6 +84,7 @@ public class OllamaAiAdapter implements AiService {
                     .bodyToMono(String.class)
                     .block();
 
+            log.info("Ollama: response received in {} ms", System.currentTimeMillis() - start);
             if (response == null || response.isBlank()) {
                 throw new AiServiceException("Empty response from Ollama");
             }

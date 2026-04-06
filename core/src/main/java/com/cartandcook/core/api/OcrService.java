@@ -32,10 +32,13 @@ public class OcrService {
      */
     public String extractText(byte[] imageBytes) {
         try {
+            long start = System.currentTimeMillis();
             BufferedImage image = ImageIO.read(new ByteArrayInputStream(imageBytes));
             if (image == null) {
                 throw new AiServiceException("Could not read uploaded image. Ensure it is a valid image file.");
             }
+            log.info("OCR: image decoded ({}x{}) in {} ms", image.getWidth(), image.getHeight(),
+                    System.currentTimeMillis() - start);
 
             Tesseract tesseract = new Tesseract();
             tesseract.setDatapath(tessDataPath);
@@ -43,13 +46,16 @@ public class OcrService {
             // Page segmentation mode 3 = fully automatic
             tesseract.setPageSegMode(3);
 
+            long ocrStart = System.currentTimeMillis();
             String text = tesseract.doOCR(image);
+            log.info("OCR: text extraction took {} ms, extracted {} chars",
+                    System.currentTimeMillis() - ocrStart, text == null ? 0 : text.length());
 
             if (text == null || text.isBlank()) {
                 throw new AiServiceException("OCR could not extract any text from the image. Try a clearer photo.");
             }
 
-            log.debug("OCR extracted {} characters from image", text.length());
+            log.info("OCR: total pipeline took {} ms", System.currentTimeMillis() - start);
             return text.strip();
         } catch (IOException e) {
             throw new AiServiceException("Failed to read image for OCR", e);
