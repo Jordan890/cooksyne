@@ -11,7 +11,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
-import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 
@@ -38,81 +37,35 @@ public class HuggingFaceAiAdapter implements AiService {
     }
 
     @Override
-    public RecipeAnalysis analyzeFoodImage(byte[] image) {
-        return analyzeWithImage(image, AiPrompts.FOOD_IMAGE_PROMPT);
-    }
-
-    @Override
-    public RecipeAnalysis analyzeRecipeImage(byte[] image) {
-        return analyzeWithImage(image, AiPrompts.RECIPE_IMAGE_PROMPT);
-    }
-
-    @Override
     public RecipeAnalysis analyzeFoodByTitle(String dishTitle) {
         return analyzeTextOnly(AiPrompts.foodTitleOnlyPrompt(dishTitle));
     }
 
     @Override
-    public RecipeAnalysis analyzeFoodByTitleAndImage(String dishTitle, byte[] image) {
-        return analyzeWithImage(image, AiPrompts.foodTitlePrompt(dishTitle));
-    }
-
-    @Override
-    public RecipeAnalysis analyzeRecipeByTitle(String dishTitle) {
-        return analyzeTextOnly(AiPrompts.recipeTitleOnlyPrompt(dishTitle));
-    }
-
-    @Override
-    public RecipeAnalysis analyzeRecipeByTitleAndImage(String dishTitle, byte[] image) {
-        return analyzeWithImage(image, AiPrompts.recipeTitlePrompt(dishTitle));
-    }
-
-    private RecipeAnalysis analyzeWithImage(byte[] image, String prompt) {
-        byte[] processed = AiImageProcessor.preprocessImage(image);
-        String base64 = Base64.getEncoder().encodeToString(processed);
-        String imageDataUrl = "data:image/jpeg;base64," + base64;
-
-        Map<String, Object> requestBody = buildRequest(prompt, imageDataUrl);
-
-        String rawResponse = sendRequest(requestBody);
-        String content = extractContent(rawResponse);
-
-        return AiResponseParser.parseWithRetry(content, objectMapper, () -> {
-            Map<String, Object> retryBody = buildTextOnlyRequest(AiPrompts.RETRY_PROMPT);
-            return extractContent(sendRequest(retryBody));
-        });
+    public RecipeAnalysis analyzeRecipeByText(String extractedText) {
+        return analyzeTextOnly(AiPrompts.recipeTextPrompt(extractedText));
     }
 
     private RecipeAnalysis analyzeTextOnly(String prompt) {
-        Map<String, Object> requestBody = buildTextOnlyRequest(prompt);
-
-        String rawResponse = sendRequest(requestBody);
-        String content = extractContent(rawResponse);
-
-        return AiResponseParser.parseWithRetry(content, objectMapper, () -> {
-            Map<String, Object> retryBody = buildTextOnlyRequest(AiPrompts.RETRY_PROMPT);
-            return extractContent(sendRequest(retryBody));
-        });
-    }
-
-    private Map<String, Object> buildRequest(String prompt, String imageDataUrl) {
-        return Map.of(
-                "model", properties.getModel(),
-                "messages", List.of(Map.of(
-                        "role", "user",
-                        "content", List.of(
-                                Map.of("type", "text", "text", prompt),
-                                Map.of("type", "image_url", "image_url", Map.of("url", imageDataUrl))))),
-                "temperature", 0.2);
-    }
-
-    private Map<String, Object> buildTextOnlyRequest(String prompt) {
-        return Map.of(
+        Map<String, Object> requestBody = Map.of(
                 "model", properties.getModel(),
                 "messages", List.of(Map.of(
                         "role", "user",
                         "content", List.of(Map.of("type", "text", "text", prompt)))),
                 "temperature", 0.2);
+
+        String rawResponse = sendRequest(requestBody);
+        String content = extractContent(rawResponse);
+
+        return AiResponseParser.parseWithRetry(content, objectMapper, () -> {
+            Map<String, Object> retryBody = Map.of(
+                    "model", properties.getModel(),
+                    "messages", List.of(Map.of(
+                            "role", "user",
+                            "content", List.of(Map.of("type", "text", "text", AiPrompts.RETRY_PROMPT)))),
+                    "temperature", 0.2);
+            return extractContent(sendRequest(retryBody));
+        });
     }
 
     private String sendRequest(Map<String, Object> requestBody) {

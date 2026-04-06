@@ -14,7 +14,6 @@ import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
 import software.amazon.awssdk.services.bedrockruntime.model.InvokeModelRequest;
 import software.amazon.awssdk.services.bedrockruntime.model.InvokeModelResponse;
 
-import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 
@@ -42,65 +41,19 @@ public class BedrockAiAdapter implements AiService {
     }
 
     @Override
-    public RecipeAnalysis analyzeFoodImage(byte[] image) {
-        return analyzeWithImage(image, AiPrompts.FOOD_IMAGE_PROMPT);
-    }
-
-    @Override
-    public RecipeAnalysis analyzeRecipeImage(byte[] image) {
-        return analyzeWithImage(image, AiPrompts.RECIPE_IMAGE_PROMPT);
-    }
-
-    @Override
     public RecipeAnalysis analyzeFoodByTitle(String dishTitle) {
         return analyzeTextOnly(AiPrompts.foodTitleOnlyPrompt(dishTitle));
     }
 
     @Override
-    public RecipeAnalysis analyzeFoodByTitleAndImage(String dishTitle, byte[] image) {
-        return analyzeWithImage(image, AiPrompts.foodTitlePrompt(dishTitle));
-    }
-
-    @Override
-    public RecipeAnalysis analyzeRecipeByTitle(String dishTitle) {
-        return analyzeTextOnly(AiPrompts.recipeTitleOnlyPrompt(dishTitle));
-    }
-
-    @Override
-    public RecipeAnalysis analyzeRecipeByTitleAndImage(String dishTitle, byte[] image) {
-        return analyzeWithImage(image, AiPrompts.recipeTitlePrompt(dishTitle));
-    }
-
-    private RecipeAnalysis analyzeWithImage(byte[] image, String prompt) {
-        byte[] processed = AiImageProcessor.preprocessImage(image);
-        String base64 = Base64.getEncoder().encodeToString(processed);
-
-        String content = sendImageRequest(base64, prompt);
-
-        return AiResponseParser.parseWithRetry(content, objectMapper, () -> sendTextRequest(AiPrompts.RETRY_PROMPT));
+    public RecipeAnalysis analyzeRecipeByText(String extractedText) {
+        return analyzeTextOnly(AiPrompts.recipeTextPrompt(extractedText));
     }
 
     private RecipeAnalysis analyzeTextOnly(String prompt) {
         String content = sendTextRequest(prompt);
 
         return AiResponseParser.parseWithRetry(content, objectMapper, () -> sendTextRequest(AiPrompts.RETRY_PROMPT));
-    }
-
-    private String sendImageRequest(String base64Image, String prompt) {
-        Map<String, Object> requestBody = Map.of(
-                "anthropic_version", "bedrock-2023-05-31",
-                "max_tokens", 4096,
-                "temperature", 0.2,
-                "messages", List.of(Map.of(
-                        "role", "user",
-                        "content", List.of(
-                                Map.of("type", "image",
-                                        "source", Map.of(
-                                                "type", "base64",
-                                                "media_type", "image/jpeg",
-                                                "data", base64Image)),
-                                Map.of("type", "text", "text", prompt)))));
-        return invokeModel(requestBody);
     }
 
     private String sendTextRequest(String prompt) {

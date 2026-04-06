@@ -1,6 +1,7 @@
 package com.cartandcook.selfhosted.controller;
 
 import com.cartandcook.core.api.AiService;
+import com.cartandcook.core.api.OcrService;
 import com.cartandcook.core.domain.RecipeAnalysis;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -17,50 +18,33 @@ import java.io.IOException;
 public class AiController {
 
     private final AiService aiService;
+    private final OcrService ocrService;
 
-    public AiController(AiService aiService) {
+    public AiController(AiService aiService, OcrService ocrService) {
         this.aiService = aiService;
+        this.ocrService = ocrService;
     }
 
-    @PostMapping(value = "/analyze-food", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping("/analyze-food")
     public ResponseEntity<RecipeAnalysis> analyzeFood(
-            @RequestParam(value = "image", required = false) MultipartFile image,
-            @RequestParam(value = "title", required = false) String title) throws IOException {
+            @RequestParam("title") String title) {
 
-        RecipeAnalysis result;
-        boolean hasImage = image != null && !image.isEmpty();
-        boolean hasTitle = title != null && !title.isBlank();
-
-        if (hasTitle && hasImage) {
-            result = aiService.analyzeFoodByTitleAndImage(title.trim(), image.getBytes());
-        } else if (hasTitle) {
-            result = aiService.analyzeFoodByTitle(title.trim());
-        } else if (hasImage) {
-            result = aiService.analyzeFoodImage(image.getBytes());
-        } else {
+        if (title == null || title.isBlank()) {
             return ResponseEntity.badRequest().build();
         }
+        RecipeAnalysis result = aiService.analyzeFoodByTitle(title.trim());
         return ResponseEntity.ok(result);
     }
 
     @PostMapping(value = "/analyze-recipe", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<RecipeAnalysis> analyzeRecipe(
-            @RequestParam(value = "image", required = false) MultipartFile image,
-            @RequestParam(value = "title", required = false) String title) throws IOException {
+            @RequestParam("image") MultipartFile image) throws IOException {
 
-        RecipeAnalysis result;
-        boolean hasImage = image != null && !image.isEmpty();
-        boolean hasTitle = title != null && !title.isBlank();
-
-        if (hasTitle && hasImage) {
-            result = aiService.analyzeRecipeByTitleAndImage(title.trim(), image.getBytes());
-        } else if (hasTitle) {
-            result = aiService.analyzeRecipeByTitle(title.trim());
-        } else if (hasImage) {
-            result = aiService.analyzeRecipeImage(image.getBytes());
-        } else {
+        if (image == null || image.isEmpty()) {
             return ResponseEntity.badRequest().build();
         }
+        String extractedText = ocrService.extractText(image.getBytes());
+        RecipeAnalysis result = aiService.analyzeRecipeByText(extractedText);
         return ResponseEntity.ok(result);
     }
 }

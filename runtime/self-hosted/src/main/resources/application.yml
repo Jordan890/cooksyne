@@ -16,6 +16,11 @@ spring:
         jwt:
           issuer-uri: ${OAUTH2_ISSUER_URI:http://localhost:8080/realms/cart_and_cook}
 
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
 # Server settings
 server:
   port: ${PORT:8081}

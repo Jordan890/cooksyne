@@ -1,6 +1,5 @@
 package com.cartandcook.selfhosted.service;
 
-import com.cartandcook.core.api.AiImageProcessor;
 import com.cartandcook.core.api.AiPrompts;
 import com.cartandcook.core.api.AiResponseParser;
 import com.cartandcook.core.api.AiService;
@@ -21,7 +20,6 @@ import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
 import software.amazon.awssdk.services.bedrockruntime.model.InvokeModelRequest;
 import software.amazon.awssdk.services.bedrockruntime.model.InvokeModelResponse;
 
-import java.util.Base64;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -51,51 +49,15 @@ public class RuntimeConfiguredAiService implements AiService {
     }
 
     @Override
-    public RecipeAnalysis analyzeFoodImage(byte[] image) {
-        RuntimeConfigResponse cfg = runtimeConfigService.get();
-        return analyzeWithImage(image, AiPrompts.FOOD_IMAGE_PROMPT, cfg);
-    }
-
-    @Override
-    public RecipeAnalysis analyzeRecipeImage(byte[] image) {
-        RuntimeConfigResponse cfg = runtimeConfigService.get();
-        return analyzeWithImage(image, AiPrompts.RECIPE_IMAGE_PROMPT, cfg);
-    }
-
-    @Override
     public RecipeAnalysis analyzeFoodByTitle(String dishTitle) {
         RuntimeConfigResponse cfg = runtimeConfigService.get();
         return analyzeTextOnly(AiPrompts.foodTitleOnlyPrompt(dishTitle), cfg);
     }
 
     @Override
-    public RecipeAnalysis analyzeFoodByTitleAndImage(String dishTitle, byte[] image) {
+    public RecipeAnalysis analyzeRecipeByText(String extractedText) {
         RuntimeConfigResponse cfg = runtimeConfigService.get();
-        return analyzeWithImage(image, AiPrompts.foodTitlePrompt(dishTitle), cfg);
-    }
-
-    @Override
-    public RecipeAnalysis analyzeRecipeByTitle(String dishTitle) {
-        RuntimeConfigResponse cfg = runtimeConfigService.get();
-        return analyzeTextOnly(AiPrompts.recipeTitleOnlyPrompt(dishTitle), cfg);
-    }
-
-    @Override
-    public RecipeAnalysis analyzeRecipeByTitleAndImage(String dishTitle, byte[] image) {
-        RuntimeConfigResponse cfg = runtimeConfigService.get();
-        return analyzeWithImage(image, AiPrompts.recipeTitlePrompt(dishTitle), cfg);
-    }
-
-    private RecipeAnalysis analyzeWithImage(byte[] image, String prompt, RuntimeConfigResponse cfg) {
-        String provider = normalizeProvider(cfg.getAiProvider());
-        return switch (provider) {
-            case "ollama" -> analyzeImageWithOllama(image, prompt, cfg);
-            case "openai" -> analyzeImageWithOpenAi(image, prompt, cfg);
-            case "huggingface" -> analyzeImageWithHuggingFace(image, prompt, cfg);
-            case "bedrock" -> analyzeImageWithBedrock(image, prompt, cfg);
-            default -> throw new AiServiceException(
-                    "AI provider is not configured. Set AI provider in Runtime Settings (ollama/openai/huggingface/bedrock).");
-        };
+        return analyzeTextOnly(AiPrompts.recipeTextPrompt(extractedText), cfg);
     }
 
     private RecipeAnalysis analyzeTextOnly(String prompt, RuntimeConfigResponse cfg) {
@@ -108,32 +70,6 @@ public class RuntimeConfiguredAiService implements AiService {
             default -> throw new AiServiceException(
                     "AI provider is not configured. Set AI provider in Runtime Settings (ollama/openai/huggingface/bedrock).");
         };
-    }
-
-    private RecipeAnalysis analyzeImageWithOllama(byte[] image, String prompt, RuntimeConfigResponse cfg) {
-        byte[] processed = AiImageProcessor.preprocessImage(image);
-        String base64 = Base64.getEncoder().encodeToString(processed);
-        WebClient webClient = WebClient.builder().baseUrl(cfg.getOllamaBaseUrl()).build();
-
-        Map<String, Object> requestBody = Map.of(
-                "model", cfg.getOllamaModel(),
-                "messages", List.of(Map.of(
-                        "role", "user",
-                        "content", prompt,
-                        "images", List.of(base64))),
-                "stream", false,
-                "options", Map.of("temperature", 0.2));
-
-        String content = extractOllamaContent(sendWebClientRequest(webClient, "/api/chat", requestBody, "Ollama"));
-
-        return AiResponseParser.parseWithRetry(content, objectMapper, () -> {
-            Map<String, Object> retryBody = Map.of(
-                    "model", cfg.getOllamaModel(),
-                    "messages", List.of(Map.of("role", "user", "content", AiPrompts.RETRY_PROMPT)),
-                    "stream", false,
-                    "options", Map.of("temperature", 0.2));
-            return extractOllamaContent(sendWebClientRequest(webClient, "/api/chat", retryBody, "Ollama"));
-        });
     }
 
     private RecipeAnalysis analyzeTextWithOllama(String prompt, RuntimeConfigResponse cfg) {
@@ -156,47 +92,6 @@ public class RuntimeConfiguredAiService implements AiService {
                     "stream", false,
                     "options", Map.of("temperature", 0.2));
             return extractOllamaContent(sendWebClientRequest(webClient, "/api/chat", retryBody, "Ollama"));
-        });
-    }
-
-    private RecipeAnalysis analyzeImageWithOpenAi(byte[] image, String prompt, RuntimeConfigResponse cfg) {
-        if (openAiApiKey == null || openAiApiKey.isBlank()) {
-            throw new AiServiceException(
-                    "OPENAI_API_KEY is not set. Configure it as an environment variable before startup.");
-        }
-
-        byte[] processed = AiImageProcessor.preprocessImage(image);
-        String base64 = Base64.getEncoder().encodeToString(processed);
-        String imageDataUrl = "data:image/jpeg;base64," + base64;
-
-        WebClient webClient = WebClient.builder()
-                .baseUrl("https://api.openai.com")
-                .defaultHeader("Authorization", "Bearer " + openAiApiKey)
-                .build();
-
-        Map<String, Object> requestBody = Map.of(
-                "model", cfg.getOpenAiModel(),
-                "messages", List.of(Map.of(
-                        "role", "user",
-                        "content", List.of(
-                                Map.of("type", "text", "text", prompt),
-                                Map.of("type", "image_url", "image_url", Map.of("url", imageDataUrl))))),
-                "temperature", 0.2);
-
-        String content = extractOpenAiLikeContent(
-                sendWebClientRequest(webClient, "/v1/chat/completions", requestBody, "OpenAI"),
-                "OpenAI");
-
-        return AiResponseParser.parseWithRetry(content, objectMapper, () -> {
-            Map<String, Object> retryBody = Map.of(
-                    "model", cfg.getOpenAiModel(),
-                    "messages", List.of(Map.of(
-                            "role", "user",
-                            "content", List.of(Map.of("type", "text", "text", AiPrompts.RETRY_PROMPT)))),
-                    "temperature", 0.2);
-            return extractOpenAiLikeContent(
-                    sendWebClientRequest(webClient, "/v1/chat/completions", retryBody, "OpenAI"),
-                    "OpenAI");
         });
     }
 
@@ -232,49 +127,6 @@ public class RuntimeConfiguredAiService implements AiService {
             return extractOpenAiLikeContent(
                     sendWebClientRequest(webClient, "/v1/chat/completions", retryBody, "OpenAI"),
                     "OpenAI");
-        });
-    }
-
-    private RecipeAnalysis analyzeImageWithHuggingFace(byte[] image, String prompt, RuntimeConfigResponse cfg) {
-        if (huggingFaceApiKey == null || huggingFaceApiKey.isBlank()) {
-            throw new AiServiceException(
-                    "HUGGINGFACE_API_KEY is not set. Configure it as an environment variable before startup.");
-        }
-
-        byte[] processed = AiImageProcessor.preprocessImage(image);
-        String base64 = Base64.getEncoder().encodeToString(processed);
-        String imageDataUrl = "data:image/jpeg;base64," + base64;
-
-        WebClient webClient = WebClient.builder()
-                .baseUrl("https://api-inference.huggingface.co")
-                .defaultHeader("Authorization", "Bearer " + huggingFaceApiKey)
-                .build();
-
-        String uri = "/models/" + cfg.getHuggingFaceModel() + "/v1/chat/completions";
-
-        Map<String, Object> requestBody = Map.of(
-                "model", cfg.getHuggingFaceModel(),
-                "messages", List.of(Map.of(
-                        "role", "user",
-                        "content", List.of(
-                                Map.of("type", "text", "text", prompt),
-                                Map.of("type", "image_url", "image_url", Map.of("url", imageDataUrl))))),
-                "temperature", 0.2);
-
-        String content = extractOpenAiLikeContent(
-                sendWebClientRequest(webClient, uri, requestBody, "Hugging Face"),
-                "Hugging Face");
-
-        return AiResponseParser.parseWithRetry(content, objectMapper, () -> {
-            Map<String, Object> retryBody = Map.of(
-                    "model", cfg.getHuggingFaceModel(),
-                    "messages", List.of(Map.of(
-                            "role", "user",
-                            "content", List.of(Map.of("type", "text", "text", AiPrompts.RETRY_PROMPT)))),
-                    "temperature", 0.2);
-            return extractOpenAiLikeContent(
-                    sendWebClientRequest(webClient, uri, retryBody, "Hugging Face"),
-                    "Hugging Face");
         });
     }
 
@@ -315,38 +167,11 @@ public class RuntimeConfiguredAiService implements AiService {
         });
     }
 
-    private RecipeAnalysis analyzeImageWithBedrock(byte[] image, String prompt, RuntimeConfigResponse cfg) {
-        byte[] processed = AiImageProcessor.preprocessImage(image);
-        String base64 = Base64.getEncoder().encodeToString(processed);
-
-        String content = sendBedrockImageRequest(base64, prompt, cfg);
-
-        return AiResponseParser.parseWithRetry(content, objectMapper,
-                () -> sendBedrockTextRequest(AiPrompts.RETRY_PROMPT, cfg));
-    }
-
     private RecipeAnalysis analyzeTextWithBedrock(String prompt, RuntimeConfigResponse cfg) {
         String content = sendBedrockTextRequest(prompt, cfg);
 
         return AiResponseParser.parseWithRetry(content, objectMapper,
                 () -> sendBedrockTextRequest(AiPrompts.RETRY_PROMPT, cfg));
-    }
-
-    private String sendBedrockImageRequest(String base64Image, String prompt, RuntimeConfigResponse cfg) {
-        Map<String, Object> requestBody = Map.of(
-                "anthropic_version", "bedrock-2023-05-31",
-                "max_tokens", 4096,
-                "temperature", 0.2,
-                "messages", List.of(Map.of(
-                        "role", "user",
-                        "content", List.of(
-                                Map.of("type", "image",
-                                        "source", Map.of(
-                                                "type", "base64",
-                                                "media_type", "image/jpeg",
-                                                "data", base64Image)),
-                                Map.of("type", "text", "text", prompt)))));
-        return invokeBedrock(requestBody, cfg);
     }
 
     private String sendBedrockTextRequest(String prompt, RuntimeConfigResponse cfg) {

@@ -20,6 +20,9 @@ dependencies {
     // Jackson for AI response parsing
     api("com.fasterxml.jackson.core:jackson-databind:2.18.0")
 
+    // Tesseract OCR
+    api("net.sourceforge.tess4j:tess4j:5.13.0")
+
     // Logging
     api("org.slf4j:slf4j-api:2.0.9")
 

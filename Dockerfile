@@ -20,7 +20,7 @@ LABEL org.opencontainers.image.title="cart-and-cook-api" \
     org.opencontainers.image.version="${APP_VERSION}" \
     org.opencontainers.image.description="Cart & Cook backend API"
 
-RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends curl tesseract-ocr tesseract-ocr-eng && rm -rf /var/lib/apt/lists/*
 
 COPY --from=build /app/runtime/self-hosted/build/libs/*.jar app.jar
 
