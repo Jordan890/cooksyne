@@ -84,12 +84,13 @@ cp .env.example .env
 
 Edit `.env` and fill in at minimum:
 
-| Variable                  | What to set                                       |
-| ------------------------- | ------------------------------------------------- |
-| `TS_HOSTNAME`             | Machine name for Tailscale (e.g. `cart-and-cook`) |
-| `TS_AUTHKEY`              | Auth key from Tailscale admin console             |
-| `DB_PASSWORD`             | A strong random password                          |
-| `KEYCLOAK_ADMIN_PASSWORD` | A strong random password                          |
+| Variable                  | What to set                                        |
+| ------------------------- | -------------------------------------------------- |
+| `TS_HOSTNAME`             | Machine name for Tailscale (e.g. `cart-and-cook`)  |
+| `TS_AUTHKEY`              | Auth key from Tailscale admin console              |
+| `DOMAIN`                  | Full FQDN (e.g. `cart-and-cook.your-tailnet.ts.net`) |
+| `DB_PASSWORD`             | A strong random password                           |
+| `KEYCLOAK_ADMIN_PASSWORD` | A strong random password                           |
 
 Leave `JWT_PUBLIC_KEY` blank for now.
 
@@ -126,7 +127,7 @@ Look for `Listening on: http://0.0.0.0:8080` in the logs.
 Open Keycloak in your browser:
 
 ```
-https://<TS_HOSTNAME>.<your-tailnet>.ts.net/auth/
+https://<DOMAIN>/auth/
 ```
 
 Log in with the admin credentials from `.env`.
@@ -145,9 +146,9 @@ Log in with the admin credentials from `.env`.
    - **Client type**: OpenID Connect
 3. Click **Next**, then **Next** again (defaults are fine for public client)
 4. Set:
-   - **Valid redirect URIs**: `https://<TS_HOSTNAME>.<your-tailnet>.ts.net/*`
-   - **Valid post logout redirect URIs**: `https://<TS_HOSTNAME>.<your-tailnet>.ts.net/*`
-   - **Web origins**: `https://<TS_HOSTNAME>.<your-tailnet>.ts.net`
+   - **Valid redirect URIs**: `https://<DOMAIN>/*`
+   - **Valid post logout redirect URIs**: `https://<DOMAIN>/*`
+   - **Web origins**: `https://<DOMAIN>`
 5. Click **Save**
 
 #### Create a user
@@ -190,7 +191,7 @@ docker compose up -d
 Open your browser:
 
 ```
-https://<TS_HOSTNAME>.<your-tailnet>.ts.net
+https://<DOMAIN>
 ```
 
 You'll be redirected to Keycloak to log in, then back to the app.
@@ -199,20 +200,21 @@ You'll be redirected to Keycloak to log in, then back to the app.
 
 ## Environment Variables Reference
 
-| Variable                  | Required | Default                             | Description                            |
-| ------------------------- | -------- | ----------------------------------- | -------------------------------------- |
-| `TS_HOSTNAME`             | Yes      | —                                   | Tailscale machine name                 |
-| `TS_AUTHKEY`              | Yes      | —                                   | Tailscale auth key                     |
-| `DB_USERNAME`             | No       | `postgres`                          | PostgreSQL username                    |
-| `DB_PASSWORD`             | Yes      | —                                   | PostgreSQL password                    |
-| `KEYCLOAK_ADMIN_USERNAME` | No       | `admin`                             | Keycloak admin username                |
-| `KEYCLOAK_ADMIN_PASSWORD` | Yes      | —                                   | Keycloak admin password                |
-| `JWT_PUBLIC_KEY`          | Yes      | —                                   | Base64 X.509 certificate from Keycloak |
-| `CART_AND_COOK_VERSION`   | No       | `release`                           | Docker image tag                       |
-| `AUTH_CLIENT_ID`          | No       | `cart-and-cook-ui`                  | Keycloak OIDC client ID                |
-| `OPENAI_API_KEY`          | No       | —                                   | OpenAI API key                         |
-| `HUGGINGFACE_API_KEY`     | No       | —                                   | Hugging Face API key                   |
-| `OLLAMA_BASE_URL`         | No       | `http://host.docker.internal:11434` | Ollama API URL                         |
+| Variable                  | Required | Default                             | Description                                        |
+| ------------------------- | -------- | ----------------------------------- | -------------------------------------------------- |
+| `TS_HOSTNAME`             | Yes      | —                                   | Tailscale machine name (used by Caddy)             |
+| `TS_AUTHKEY`              | Yes      | —                                   | Tailscale auth key                                 |
+| `DOMAIN`                  | Yes      | —                                   | Full FQDN (e.g. `cart-and-cook.your-tailnet.ts.net`) |
+| `DB_USERNAME`             | No       | `postgres`                          | PostgreSQL username                                |
+| `DB_PASSWORD`             | Yes      | —                                   | PostgreSQL password                                |
+| `KEYCLOAK_ADMIN_USERNAME` | No       | `admin`                             | Keycloak admin username                            |
+| `KEYCLOAK_ADMIN_PASSWORD` | Yes      | —                                   | Keycloak admin password                            |
+| `JWT_PUBLIC_KEY`          | Yes      | —                                   | Base64 X.509 certificate from Keycloak             |
+| `CART_AND_COOK_VERSION`   | No       | `release`                           | Docker image tag                                   |
+| `AUTH_CLIENT_ID`          | No       | `cart-and-cook-ui`                  | Keycloak OIDC client ID                            |
+| `OPENAI_API_KEY`          | No       | —                                   | OpenAI API key                                     |
+| `HUGGINGFACE_API_KEY`     | No       | —                                   | Hugging Face API key                               |
+| `OLLAMA_BASE_URL`         | No       | `http://host.docker.internal:11434` | Ollama API URL                                     |
 
 ---
 
@@ -272,12 +274,12 @@ Keycloak is configured with:
 
 - `KC_HTTP_RELATIVE_PATH=/auth` — serves under the `/auth` path
 - `KC_PROXY_HEADERS=xforwarded` — trusts `X-Forwarded-*` headers from Caddy
-- `KC_HOSTNAME=https://<TS_HOSTNAME>/auth` — generates correct URLs in tokens and discovery documents
+- `KC_HOSTNAME=https://<DOMAIN>/auth` — generates correct URLs in tokens and discovery documents
 
 This means:
 
-- The `iss` (issuer) claim in JWTs will be `https://<TS_HOSTNAME>.<tailnet>.ts.net/auth/realms/cart_and_cook`
-- The OIDC discovery endpoint is at `https://<TS_HOSTNAME>.<tailnet>.ts.net/auth/realms/cart_and_cook/.well-known/openid-configuration`
+- The `iss` (issuer) claim in JWTs will be `https://<DOMAIN>/auth/realms/cart_and_cook`
+- The OIDC discovery endpoint is at `https://<DOMAIN>/auth/realms/cart_and_cook/.well-known/openid-configuration`
 - Both the UI (`AUTH_AUTHORITY`) and backend (`OAUTH2_ISSUER_URI`) are auto-configured to match
 
 ---
@@ -303,7 +305,7 @@ Wait for `Listening on: http://0.0.0.0:8080`.
 ### 401 Unauthorized from the API
 
 1. **Check `JWT_PUBLIC_KEY`**: Must be the Certificate (not "Public key") from Keycloak's RS256 key
-2. **Check issuer match**: The `iss` claim in the JWT must exactly match the backend's `OAUTH2_ISSUER_URI`. Both are auto-set to `https://<TS_HOSTNAME>/auth/realms/cart_and_cook` — verify with:
+2. **Check issuer match**: The `iss` claim in the JWT must exactly match the backend's `OAUTH2_ISSUER_URI`. Both are auto-set to `https://<DOMAIN>/auth/realms/cart_and_cook` — verify with:
    ```bash
    # Decode a token (paste it into TOKEN)
    echo "$TOKEN" | cut -d '.' -f2 | base64 -D 2>/dev/null || echo "$TOKEN" | cut -d '.' -f2 | base64 -d
@@ -312,15 +314,15 @@ Wait for `Listening on: http://0.0.0.0:8080`.
 
 ### OIDC login redirects fail
 
-- **Redirect URI mismatch**: In Keycloak client settings, `Valid redirect URIs` must include `https://<TS_HOSTNAME>.<tailnet>.ts.net/*`
-- **Web origins**: Must include `https://<TS_HOSTNAME>.<tailnet>.ts.net`
-- **Wrong authority**: The UI's `AUTH_AUTHORITY` must be `https://<TS_HOSTNAME>.<tailnet>.ts.net/auth/realms/cart_and_cook`
+- **Redirect URI mismatch**: In Keycloak client settings, `Valid redirect URIs` must include `https://<DOMAIN>/*`
+- **Web origins**: Must include `https://<DOMAIN>`
+- **Wrong authority**: The UI's `AUTH_AUTHORITY` must be `https://<DOMAIN>/auth/realms/cart_and_cook`
 
 ### Can't reach the app from another device
 
 - Both devices must be on the same Tailscale network
 - Run `tailscale status` on the client device to verify connectivity
-- Try `curl https://<TS_HOSTNAME>.<tailnet>.ts.net/actuator/health`
+- Try `curl https://<DOMAIN>/api/actuator/health`
 
 ### Keycloak key rotation
 

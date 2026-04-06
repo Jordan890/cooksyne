@@ -62,8 +62,16 @@ echo "── Tailscale Configuration ──"
 echo ""
 echo "  The app will be available at https://<hostname>.<tailnet>.ts.net"
 echo ""
-prompt TS_HOSTNAME "Tailscale machine name" "cart-and-cook"
+prompt TS_HOSTNAME "Tailscale machine name (e.g. cart-and-cook)" "cart-and-cook"
 prompt TS_AUTHKEY  "Tailscale auth key (from https://login.tailscale.com/admin/settings/keys)" ""
+
+echo ""
+echo "── Domain ──"
+echo ""
+echo "  Full domain name: <TS_HOSTNAME>.<tailnet-name>.ts.net"
+echo "  Find your tailnet name at https://login.tailscale.com/admin/machines"
+echo ""
+prompt DOMAIN "Full domain (e.g. ${TS_HOSTNAME}.your-tailnet.ts.net)" ""
 
 echo ""
 echo "── Database ──"
@@ -104,6 +112,9 @@ cat > .env <<EOF
 # ── Tailscale ─────────────────────────────────────────────────────────
 TS_HOSTNAME=${TS_HOSTNAME}
 TS_AUTHKEY=${TS_AUTHKEY}
+
+# ── Domain ────────────────────────────────────────────────────────────
+DOMAIN=${DOMAIN}
 
 # ── Image version ────────────────────────────────────────────────────
 CART_AND_COOK_VERSION=${CART_AND_COOK_VERSION}
@@ -159,7 +170,7 @@ if [ -z "$JWT_PUBLIC_KEY" ]; then
   echo ""
   echo "Wait for Keycloak to start, then:"
   echo ""
-  echo "  1. Open https://${TS_HOSTNAME}.<your-tailnet>.ts.net/auth/"
+  echo "  1. Open https://${DOMAIN}/auth/"
   echo "     (or http://localhost:8080/auth/ if Caddy is not yet running)"
   echo ""
   echo "     Since Caddy is not up yet, start it first to get the"
@@ -170,8 +181,8 @@ if [ -z "$JWT_PUBLIC_KEY" ]; then
   echo "  3. Create realm: cart_and_cook"
   echo "  4. Create client: ${AUTH_CLIENT_ID}"
   echo "       - Client type: OpenID Connect"
-  echo "       - Valid redirect URIs: https://${TS_HOSTNAME}.*"
-  echo "       - Web origins: https://${TS_HOSTNAME}.*"
+  echo "       - Valid redirect URIs: https://${DOMAIN}/*"
+  echo "       - Web origins: https://${DOMAIN}"
   echo "  5. Create a user and set a password"
   echo "  6. Get the JWT certificate:"
   echo "       Realm Settings > Keys > RS256 row > Certificate"
@@ -187,9 +198,9 @@ else
   echo ""
   echo "All services starting. Access the app at:"
   echo ""
-  echo "  https://${TS_HOSTNAME}.<your-tailnet>.ts.net"
+  echo "  https://${DOMAIN}"
   echo ""
   echo "Keycloak admin:"
-  echo "  https://${TS_HOSTNAME}.<your-tailnet>.ts.net/auth/"
+  echo "  https://${DOMAIN}/auth/"
   echo ""
 fi

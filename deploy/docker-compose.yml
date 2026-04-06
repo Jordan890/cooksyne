@@ -20,6 +20,7 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
     volumes:
       - pgdata:/var/lib/postgresql/data
+      - ./postgres/init-keycloak-schema.sql:/docker-entrypoint-initdb.d/init-keycloak-schema.sql:ro
     healthcheck:
       test:
         ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-postgres} -d cart_and_cook"]
@@ -51,15 +52,25 @@ services:
       # Reverse proxy support — Caddy sends X-Forwarded-* headers
       KC_PROXY_HEADERS: xforwarded
       KC_HTTP_ENABLED: "true"
-      KC_HTTP_RELATIVE_PATH: /auth
 
-      # Hostname — must match the browser-facing URL through Caddy
-      KC_HOSTNAME: "https://${TS_HOSTNAME:?TS_HOSTNAME is required}/auth"
+      # Hostname — the full browser-facing URL including /auth.
+      # Keycloak runs at root (/) internally. Caddy strips /auth before
+      # proxying, and KC_HOSTNAME tells Keycloak to generate external
+      # URLs with the /auth prefix.
+      KC_HOSTNAME: "https://${DOMAIN:?DOMAIN is required}/auth"
+
+      # Enable health endpoints on management port 9000
+      KC_HEALTH_ENABLED: "true"
+
+      # Debug — shows hostname resolution at /auth/realms/master/hostname-debug
+      # (via Caddy) or /realms/master/hostname-debug (direct).
+      # Remove after setup is complete.
+      KC_HOSTNAME_DEBUG: "true"
     healthcheck:
       test:
         [
           "CMD-SHELL",
-          "exec 3<>/dev/tcp/localhost/8080 && echo -e 'GET /auth/health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && cat <&3 | grep -q '200'",
+          "exec 3<>/dev/tcp/localhost/9000 && echo -e 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && cat <&3 | grep -q '200'",
         ]
       interval: 15s
       timeout: 5s
@@ -81,12 +92,12 @@ services:
 
       # JWT — static public certificate (no runtime call to Keycloak)
       JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:?JWT_PUBLIC_KEY is required - see README.md}
-      OAUTH2_ISSUER_URI: "https://${TS_HOSTNAME}/auth/realms/cart_and_cook"
+      OAUTH2_ISSUER_URI: "https://${DOMAIN}/auth/realms/cart_and_cook"
 
       # Server
       PORT: "8081"
       CONTEXT_PATH: /api
-      CORS_ALLOWED_ORIGINS: "https://${TS_HOSTNAME}"
+      CORS_ALLOWED_ORIGINS: "https://${DOMAIN}"
 
       # AI providers (optional)
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
@@ -108,8 +119,8 @@ services:
     image: ghcr.io/jordan890/cart-and-cook-ui:${CART_AND_COOK_VERSION:-release}
     restart: unless-stopped
     environment:
-      API_URL: "https://${TS_HOSTNAME}/api"
-      AUTH_AUTHORITY: "https://${TS_HOSTNAME}/auth/realms/cart_and_cook"
+      API_URL: "https://${DOMAIN}/api"
+      AUTH_AUTHORITY: "https://${DOMAIN}/auth/realms/cart_and_cook"
       AUTH_CLIENT_ID: ${AUTH_CLIENT_ID:-cart-and-cook-ui}
       AUTH_RUNTIME: oidc
 
@@ -122,6 +133,8 @@ services:
       - backend
     cap_add:
       - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
     environment:
       TS_AUTHKEY: ${TS_AUTHKEY:?TS_AUTHKEY is required - see README.md}
       TS_HOSTNAME: ${TS_HOSTNAME:?TS_HOSTNAME is required}

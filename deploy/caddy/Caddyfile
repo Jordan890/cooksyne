@@ -9,25 +9,22 @@
 {
 	tailscale {
 		auth_key {env.TS_AUTHKEY}
-		hostname {env.TS_HOSTNAME}
 	}
 }
 
-# Match the Tailscale hostname with automatic TLS
-{env.TS_HOSTNAME}.ts.net {
+# Bind to the Tailscale network listener and serve with auto TLS
+:443 {
+	bind tailscale/{env.TS_HOSTNAME}
 	tls {
 		get_certificate tailscale
 	}
 
-	# ── Keycloak (/auth/*) ──────────────────────────────────────────
-	handle_path /auth/* {
-		reverse_proxy keycloak:8080 {
-			header_up X-Forwarded-Proto {scheme}
-			header_up X-Forwarded-Host {host}
-		}
-	}
-	handle /auth {
-		redir /auth/ permanent
+	# ── Keycloak (/auth) ────────────────────────────────────────────
+	# Keycloak runs at root (/) internally. handle_path strips the
+	# /auth prefix before forwarding, so /auth/realms/... becomes
+	# /realms/... which Keycloak understands.
+	handle_path /auth* {
+		reverse_proxy keycloak:8080
 	}
 
 	# ── Backend API (/api/*) ─────────────────────────────────────────
