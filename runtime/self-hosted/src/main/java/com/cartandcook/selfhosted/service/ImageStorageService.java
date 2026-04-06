@@ -12,7 +12,7 @@ import java.nio.file.Paths;
 @Service
 public class ImageStorageService {
 
-    @Value("${cartandcook.storage.image-dir:#{systemProperties['user.home'] + '/.cartandcook/images'}}")
+    @Value("${CARTANDCOOK_STORAGE_IMAGE_DIR:${cartandcook.storage.image-dir:#{systemProperties['user.home'] + '/.cartandcook/images'}}}")
     private String imageDir;
 
     private Path storagePath;

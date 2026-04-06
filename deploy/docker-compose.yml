@@ -105,6 +105,9 @@ services:
 
       # Ollama
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
+
+      # Image storage
+      CARTANDCOOK_STORAGE_IMAGE_DIR: /app/images
     volumes:
       - images:/app/images
     healthcheck:
