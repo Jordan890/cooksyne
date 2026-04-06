@@ -44,3 +44,13 @@ jwt:
 # CORS
 cors:
   allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:4200,http://localhost:9090,http://localhost:3000}
+
+# AI — Ollama
+cartandcook:
+  ai:
+    provider: ${AI_PROVIDER:disabled}
+    ollama:
+      base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
+      num-ctx: ${OLLAMA_NUM_CTX:2048}
+      num-thread: ${OLLAMA_NUM_THREAD:0}
+      num-predict: ${OLLAMA_NUM_PREDICT:512}

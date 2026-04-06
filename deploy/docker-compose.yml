@@ -105,6 +105,10 @@ services:
 
       # Ollama
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
+      OLLAMA_NUM_CTX: ${OLLAMA_NUM_CTX:-2048}
+      OLLAMA_NUM_THREAD: ${OLLAMA_NUM_THREAD:-0}
+      OLLAMA_NUM_PREDICT: ${OLLAMA_NUM_PREDICT:-512}
+      AI_PROVIDER: ${AI_PROVIDER:-ollama}
 
       # Image storage
       CARTANDCOOK_STORAGE_IMAGE_DIR: /app/images

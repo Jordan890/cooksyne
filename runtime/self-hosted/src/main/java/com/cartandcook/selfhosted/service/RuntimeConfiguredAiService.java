@@ -11,8 +11,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Primary;
+import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.netty.http.client.HttpClient;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.core.SdkBytes;
 import software.amazon.awssdk.regions.Region;
@@ -20,6 +22,8 @@ import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
 import software.amazon.awssdk.services.bedrockruntime.model.InvokeModelRequest;
 import software.amazon.awssdk.services.bedrockruntime.model.InvokeModelResponse;
 
+import java.time.Duration;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -36,16 +40,25 @@ public class RuntimeConfiguredAiService implements AiService {
     private final ObjectMapper objectMapper;
     private final String openAiApiKey;
     private final String huggingFaceApiKey;
+    private final int ollamaNumCtx;
+    private final int ollamaNumThread;
+    private final int ollamaNumPredict;
 
     public RuntimeConfiguredAiService(
             RuntimeConfigService runtimeConfigService,
             ObjectMapper objectMapper,
             @Value("${OPENAI_API_KEY:}") String openAiApiKey,
-            @Value("${HUGGINGFACE_API_KEY:}") String huggingFaceApiKey) {
+            @Value("${HUGGINGFACE_API_KEY:}") String huggingFaceApiKey,
+            @Value("${OLLAMA_NUM_CTX:2048}") int ollamaNumCtx,
+            @Value("${OLLAMA_NUM_THREAD:0}") int ollamaNumThread,
+            @Value("${OLLAMA_NUM_PREDICT:512}") int ollamaNumPredict) {
         this.runtimeConfigService = runtimeConfigService;
         this.objectMapper = objectMapper;
         this.openAiApiKey = openAiApiKey;
         this.huggingFaceApiKey = huggingFaceApiKey;
+        this.ollamaNumCtx = ollamaNumCtx;
+        this.ollamaNumThread = ollamaNumThread;
+        this.ollamaNumPredict = ollamaNumPredict;
     }
 
     @Override
@@ -73,7 +86,8 @@ public class RuntimeConfiguredAiService implements AiService {
     }
 
     private RecipeAnalysis analyzeTextWithOllama(String prompt, RuntimeConfigResponse cfg) {
-        WebClient webClient = WebClient.builder().baseUrl(cfg.getOllamaBaseUrl()).build();
+        WebClient webClient = buildOllamaWebClient(cfg.getOllamaBaseUrl());
+        Map<String, Object> options = buildOllamaOptions();
 
         Map<String, Object> requestBody = Map.of(
                 "model", cfg.getOllamaModel(),
@@ -81,7 +95,7 @@ public class RuntimeConfiguredAiService implements AiService {
                         "role", "user",
                         "content", prompt)),
                 "stream", false,
-                "options", Map.of("temperature", 0.2));
+                "options", options);
 
         String content = extractOllamaContent(sendWebClientRequest(webClient, "/api/chat", requestBody, "Ollama"));
 
@@ -90,9 +104,34 @@ public class RuntimeConfiguredAiService implements AiService {
                     "model", cfg.getOllamaModel(),
                     "messages", List.of(Map.of("role", "user", "content", AiPrompts.RETRY_PROMPT)),
                     "stream", false,
-                    "options", Map.of("temperature", 0.2));
+                    "options", options);
             return extractOllamaContent(sendWebClientRequest(webClient, "/api/chat", retryBody, "Ollama"));
         });
+    }
+
+    private WebClient buildOllamaWebClient(String baseUrl) {
+        HttpClient httpClient = HttpClient.create()
+                .responseTimeout(Duration.ofMinutes(5));
+        return WebClient.builder()
+                .baseUrl(baseUrl)
+                .clientConnector(new ReactorClientHttpConnector(httpClient))
+                .codecs(configurer -> configurer.defaultCodecs().maxInMemorySize(16 * 1024 * 1024))
+                .build();
+    }
+
+    private Map<String, Object> buildOllamaOptions() {
+        Map<String, Object> opts = new HashMap<>();
+        opts.put("temperature", 0.2);
+        if (ollamaNumCtx > 0) {
+            opts.put("num_ctx", ollamaNumCtx);
+        }
+        if (ollamaNumThread > 0) {
+            opts.put("num_thread", ollamaNumThread);
+        }
+        if (ollamaNumPredict > 0) {
+            opts.put("num_predict", ollamaNumPredict);
+        }
+        return opts;
     }
 
     private RecipeAnalysis analyzeTextWithOpenAi(String prompt, RuntimeConfigResponse cfg) {

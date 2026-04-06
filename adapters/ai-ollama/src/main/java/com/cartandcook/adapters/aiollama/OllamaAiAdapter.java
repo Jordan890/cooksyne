@@ -11,6 +11,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -44,13 +45,14 @@ public class OllamaAiAdapter implements AiService {
     }
 
     private RecipeAnalysis analyzeTextOnly(String prompt) {
+        Map<String, Object> options = buildOptions();
         Map<String, Object> requestBody = Map.of(
                 "model", properties.getModel(),
                 "messages", List.of(Map.of(
                         "role", "user",
                         "content", prompt)),
                 "stream", false,
-                "options", Map.of("temperature", 0.2));
+                "options", options);
 
         String rawResponse = sendRequest(requestBody);
         String content = extractContent(rawResponse);
@@ -62,9 +64,24 @@ public class OllamaAiAdapter implements AiService {
                             "role", "user",
                             "content", AiPrompts.RETRY_PROMPT)),
                     "stream", false,
-                    "options", Map.of("temperature", 0.2));
+                    "options", options);
             return extractContent(sendRequest(retryBody));
         });
+    }
+
+    private Map<String, Object> buildOptions() {
+        Map<String, Object> opts = new HashMap<>();
+        opts.put("temperature", 0.2);
+        if (properties.getNumCtx() > 0) {
+            opts.put("num_ctx", properties.getNumCtx());
+        }
+        if (properties.getNumThread() > 0) {
+            opts.put("num_thread", properties.getNumThread());
+        }
+        if (properties.getNumPredict() > 0) {
+            opts.put("num_predict", properties.getNumPredict());
+        }
+        return opts;
     }
 
     private String sendRequest(Map<String, Object> requestBody) {
