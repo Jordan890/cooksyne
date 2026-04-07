@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/ai")
@@ -61,5 +62,24 @@ public class AiController {
         log.info("analyze-recipe: AI complete in {} ms (total {} ms)",
                 System.currentTimeMillis() - ocrDone, System.currentTimeMillis() - start);
         return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/estimate-calories")
+    public ResponseEntity<Map<String, Integer>> estimateCalories(
+            @RequestParam("recipeName") String recipeName,
+            @RequestParam("ingredientsSummary") String ingredientsSummary,
+            @RequestParam("servingSize") String servingSize) {
+
+        if (recipeName == null || recipeName.isBlank()
+                || ingredientsSummary == null || ingredientsSummary.isBlank()
+                || servingSize == null || servingSize.isBlank()) {
+            return ResponseEntity.badRequest().build();
+        }
+        long start = System.currentTimeMillis();
+        log.info("estimate-calories: estimating for '{}' with serving size '{}'", recipeName.trim(),
+                servingSize.trim());
+        Integer calories = aiService.estimateCalories(recipeName.trim(), ingredientsSummary.trim(), servingSize.trim());
+        log.info("estimate-calories: AI complete in {} ms", System.currentTimeMillis() - start);
+        return ResponseEntity.ok(Map.of("estimatedCalories", calories));
     }
 }

@@ -3,6 +3,7 @@ package com.cartandcook.core.api;
 import com.cartandcook.core.domain.RecipeAnalysis;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.json.JsonReadFeature;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -207,6 +208,23 @@ public final class AiResponseParser {
             }
         }
         return json;
+    }
+
+    /**
+     * Parse a simple calorie estimate JSON response ({"estimatedCalories": N}).
+     */
+    public static Integer parseCalorieEstimate(String content, ObjectMapper objectMapper) {
+        String cleaned = cleanJsonContent(content);
+        try {
+            JsonNode root = objectMapper.readTree(cleaned);
+            JsonNode calories = root.path("estimatedCalories");
+            if (!calories.isMissingNode() && calories.isNumber()) {
+                return calories.intValue();
+            }
+            throw new AiServiceException("Invalid calorie estimate response: missing estimatedCalories field");
+        } catch (JsonProcessingException e) {
+            throw new AiServiceException("Failed to parse calorie estimate response", e);
+        }
     }
 
     /**

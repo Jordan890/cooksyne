@@ -1,6 +1,7 @@
 package com.cartandcook.adapters.persistencejpa;
 
 import com.cartandcook.core.domain.IngredientQuantity;
+import com.cartandcook.core.domain.Quantity;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -41,6 +42,10 @@ public class RecipeEntity {
 
     @Column
     private Integer estimatedCalories;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column
+    private Quantity servingSize;
 
     // --- new field for ownership ---
     @Column(nullable = false)

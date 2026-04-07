@@ -50,6 +50,13 @@ public class BedrockAiAdapter implements AiService {
         return analyzeTextOnly(AiPrompts.recipeTextPrompt(extractedText));
     }
 
+    @Override
+    public Integer estimateCalories(String recipeName, String ingredientsSummary, String servingSize) {
+        String prompt = AiPrompts.estimateCaloriesPrompt(recipeName, ingredientsSummary, servingSize);
+        String content = sendTextRequest(prompt);
+        return AiResponseParser.parseCalorieEstimate(content, objectMapper);
+    }
+
     private RecipeAnalysis analyzeTextOnly(String prompt) {
         String content = sendTextRequest(prompt);
 

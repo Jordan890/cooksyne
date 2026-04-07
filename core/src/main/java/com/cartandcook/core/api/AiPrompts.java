@@ -54,4 +54,24 @@ public final class AiPrompts {
         """
         .formatted(extractedText);
   }
+
+  public static String estimateCaloriesPrompt(String recipeName, String ingredientsSummary, String servingSize) {
+    return """
+        Estimate the total calories for one serving of the dish "%s".
+
+        Serving size: %s
+
+        Ingredients:
+        %s
+
+        Return ONLY a JSON object with one field:
+        {"estimatedCalories": <number>}
+
+        Rules:
+        - estimatedCalories is the total calorie count for one serving of the given serving size
+        - Consider proportion — if the serving size is a fraction of the total recipe, scale calories accordingly
+        - Return ONLY JSON. No markdown, no explanation.
+        """
+        .formatted(recipeName, servingSize, ingredientsSummary);
+  }
 }

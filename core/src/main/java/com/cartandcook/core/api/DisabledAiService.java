@@ -18,4 +18,9 @@ public class DisabledAiService implements AiService {
     public RecipeAnalysis analyzeRecipeByText(String extractedText) {
         throw new AiServiceException(MSG);
     }
+
+    @Override
+    public Integer estimateCalories(String recipeName, String ingredientsSummary, String servingSize) {
+        throw new AiServiceException(MSG);
+    }
 }

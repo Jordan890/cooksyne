@@ -44,6 +44,21 @@ public class OllamaAiAdapter implements AiService {
         return analyzeTextOnly(AiPrompts.recipeTextPrompt(extractedText));
     }
 
+    @Override
+    public Integer estimateCalories(String recipeName, String ingredientsSummary, String servingSize) {
+        String prompt = AiPrompts.estimateCaloriesPrompt(recipeName, ingredientsSummary, servingSize);
+        Map<String, Object> options = buildOptions();
+        Map<String, Object> requestBody = Map.of(
+                "model", properties.getModel(),
+                "messages", List.of(Map.of(
+                        "role", "user",
+                        "content", prompt)),
+                "stream", false,
+                "options", options);
+        String content = extractContent(sendRequest(requestBody));
+        return AiResponseParser.parseCalorieEstimate(content, objectMapper);
+    }
+
     private RecipeAnalysis analyzeTextOnly(String prompt) {
         Map<String, Object> options = buildOptions();
         Map<String, Object> requestBody = Map.of(

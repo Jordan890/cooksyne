@@ -73,6 +73,14 @@ public class RuntimeConfiguredAiService implements AiService {
         return analyzeTextOnly(AiPrompts.recipeTextPrompt(extractedText), cfg);
     }
 
+    @Override
+    public Integer estimateCalories(String recipeName, String ingredientsSummary, String servingSize) {
+        String prompt = AiPrompts.estimateCaloriesPrompt(recipeName, ingredientsSummary, servingSize);
+        RuntimeConfigResponse cfg = runtimeConfigService.get();
+        String content = sendPromptAndGetContent(prompt, cfg);
+        return AiResponseParser.parseCalorieEstimate(content, objectMapper);
+    }
+
     private RecipeAnalysis analyzeTextOnly(String prompt, RuntimeConfigResponse cfg) {
         String provider = normalizeProvider(cfg.getAiProvider());
         return switch (provider) {
@@ -324,5 +332,59 @@ public class RuntimeConfiguredAiService implements AiService {
 
     private String normalizeProvider(String provider) {
         return provider == null ? "" : provider.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private String sendPromptAndGetContent(String prompt, RuntimeConfigResponse cfg) {
+        String provider = normalizeProvider(cfg.getAiProvider());
+        return switch (provider) {
+            case "ollama" -> {
+                WebClient webClient = buildOllamaWebClient(cfg.getOllamaBaseUrl());
+                Map<String, Object> options = buildOllamaOptions();
+                Map<String, Object> requestBody = Map.of(
+                        "model", cfg.getOllamaModel(),
+                        "messages", List.of(Map.of("role", "user", "content", prompt)),
+                        "stream", false,
+                        "options", options);
+                yield extractOllamaContent(sendWebClientRequest(webClient, "/api/chat", requestBody, "Ollama"));
+            }
+            case "openai" -> {
+                if (openAiApiKey == null || openAiApiKey.isBlank()) {
+                    throw new AiServiceException(
+                            "OPENAI_API_KEY is not set. Configure it as an environment variable before startup.");
+                }
+                WebClient webClient = WebClient.builder()
+                        .baseUrl("https://api.openai.com")
+                        .defaultHeader("Authorization", "Bearer " + openAiApiKey)
+                        .build();
+                Map<String, Object> requestBody = Map.of(
+                        "model", cfg.getOpenAiModel(),
+                        "messages", List.of(Map.of("role", "user",
+                                "content", List.of(Map.of("type", "text", "text", prompt)))),
+                        "temperature", 0.2);
+                yield extractOpenAiLikeContent(
+                        sendWebClientRequest(webClient, "/v1/chat/completions", requestBody, "OpenAI"), "OpenAI");
+            }
+            case "huggingface" -> {
+                if (huggingFaceApiKey == null || huggingFaceApiKey.isBlank()) {
+                    throw new AiServiceException(
+                            "HUGGINGFACE_API_KEY is not set. Configure it as an environment variable before startup.");
+                }
+                WebClient webClient = WebClient.builder()
+                        .baseUrl("https://api-inference.huggingface.co")
+                        .defaultHeader("Authorization", "Bearer " + huggingFaceApiKey)
+                        .build();
+                String uri = "/models/" + cfg.getHuggingFaceModel() + "/v1/chat/completions";
+                Map<String, Object> requestBody = Map.of(
+                        "model", cfg.getHuggingFaceModel(),
+                        "messages", List.of(Map.of("role", "user",
+                                "content", List.of(Map.of("type", "text", "text", prompt)))),
+                        "temperature", 0.2);
+                yield extractOpenAiLikeContent(
+                        sendWebClientRequest(webClient, uri, requestBody, "Hugging Face"), "Hugging Face");
+            }
+            case "bedrock" -> sendBedrockTextRequest(prompt, cfg);
+            default -> throw new AiServiceException(
+                    "AI provider is not configured. Set AI provider in Runtime Settings (ollama/openai/huggingface/bedrock).");
+        };
     }
 }

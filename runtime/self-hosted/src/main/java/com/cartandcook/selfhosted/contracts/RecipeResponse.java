@@ -1,6 +1,7 @@
 package com.cartandcook.selfhosted.contracts;
 
 import com.cartandcook.core.domain.IngredientQuantity;
+import com.cartandcook.core.domain.Quantity;
 import lombok.Data;
 
 import java.util.List;
@@ -14,4 +15,5 @@ public class RecipeResponse {
     private String imageUrl;
     private List<IngredientQuantity> ingredients;
     private Integer estimatedCalories;
+    private Quantity servingSize;
 }
