@@ -1,17 +1,18 @@
 # Cart & Cook — Deployment Guide
 
-Self-hosted deployment of Cart & Cook using Docker Compose with automatic HTTPS via Tailscale.
+Self-hosted deployment of Cart & Cook using Docker Compose.
+
+By default the stack includes Keycloak (authentication), Caddy with Tailscale (HTTPS reverse proxy), and Ollama (local AI). Each of these is optional — you can bring your own auth server, reverse proxy, or AI provider.
 
 ## Architecture
 
 ```
-Browser (any device on your tailnet)
+Browser
   │
-  │  HTTPS (automatic Tailscale TLS certificate)
+  │  HTTPS
   ▼
 ┌─────────────────────────────────────────┐
-│  Caddy (reverse proxy)                  │
-│  https://<hostname>.<tailnet>.ts.net    │
+│  Reverse Proxy (Caddy or your own)      │
 │                                         │
 │  /           → UI        (nginx:80)     │
 │  /auth/*     → Keycloak  (8080)         │
@@ -20,10 +21,10 @@ Browser (any device on your tailnet)
           │           │
     ┌─────┘     ┌─────┘
     ▼           ▼
-┌────────┐ ┌────────┐ ┌────────────┐
-│  UI    │ │Backend │ │ Keycloak   │
-│ nginx  │ │ :8081  │ │   :8080    │
-└────────┘ └───┬────┘ └─────┬──────┘
+┌────────┐ ┌────────┐ ┌────────────┐ ┌────────────┐
+│  UI    │ │Backend │ │ Keycloak   │ │  Ollama    │
+│ nginx  │ │ :8081  │ │ (optional) │ │ (optional) │
+└────────┘ └───┬────┘ └─────┬──────┘ └────────────┘
                │             │
                ▼             ▼
           ┌──────────────────────┐
@@ -33,20 +34,18 @@ Browser (any device on your tailnet)
 
 **Key points:**
 
-- All browser traffic goes through Caddy over HTTPS. No ports are exposed to the host.
-- Caddy obtains TLS certificates automatically from Tailscale — no manual cert management.
-- The backend validates JWTs using a static public certificate (`JWT_PUBLIC_KEY`). It never contacts Keycloak at runtime.
+- All browser traffic goes through the reverse proxy over HTTPS. No ports are exposed to the host by default.
+- The backend validates JWTs using a static public certificate (`JWT_PUBLIC_KEY`). It never contacts the auth server at runtime.
 - Internal service-to-service traffic is plain HTTP over the isolated Docker network.
+- Optional services (Keycloak, Caddy, Ollama) are controlled via Docker Compose **profiles**.
 
 ---
 
 ## Prerequisites
 
 1. **Docker** and **Docker Compose** (v2+)
-2. A **Tailscale** account with access to the admin console
-3. A **Tailscale auth key** — generate one at [Tailscale Admin > Keys](https://login.tailscale.com/admin/settings/keys)
-   - Check **Reusable** so the key survives container restarts
-   - Check **Ephemeral** if you don't want the node to persist when the container stops
+2. An **OIDC-compatible auth server** — bundled Keycloak, or your own (Auth0, Okta, Azure AD, etc.)
+3. *(If using Caddy)* A **Tailscale** account and auth key from [Tailscale Admin > Keys](https://login.tailscale.com/admin/settings/keys)
 
 ---
 
@@ -63,12 +62,42 @@ chmod +x setup.sh
 
 The script will:
 
-1. Prompt for your Tailscale hostname and auth key
-2. Generate secure database and Keycloak admin passwords
-3. Build the Caddy image (with Tailscale plugin)
-4. Pull the application images
-5. If `JWT_PUBLIC_KEY` is not yet set, start only Keycloak + PostgreSQL for initial configuration
+1. Ask which optional components to include (Keycloak, Caddy, Ollama)
+2. Prompt for your domain, credentials, and AI provider
+3. Generate secure database and Keycloak passwords
+4. Build images and pull containers
+5. If `JWT_PUBLIC_KEY` is not yet set, start Keycloak + PostgreSQL for initial configuration
 6. Once `JWT_PUBLIC_KEY` is provided, start the full stack
+
+---
+
+## Docker Compose Profiles
+
+Optional services use [Docker Compose profiles](https://docs.docker.com/compose/profiles/). Set `COMPOSE_PROFILES` in `.env` to control which services start:
+
+| Profile      | Service   | When to include                          |
+| ------------ | --------- | ---------------------------------------- |
+| `keycloak`   | Keycloak  | Using bundled Keycloak for auth          |
+| `caddy`      | Caddy     | Using Caddy + Tailscale as reverse proxy |
+| `ollama`     | Ollama    | Using local Ollama for AI                |
+
+**Examples:**
+
+```bash
+# Full stack (default from setup.sh)
+COMPOSE_PROFILES=keycloak,caddy,ollama
+
+# No Caddy — bring your own reverse proxy
+COMPOSE_PROFILES=keycloak,ollama
+
+# No Keycloak — bring your own auth (Auth0, Okta, etc.)
+COMPOSE_PROFILES=caddy,ollama
+
+# Minimal — own proxy + own auth, no local AI
+COMPOSE_PROFILES=
+```
+
+Services **without** a profile (PostgreSQL, Backend, UI) always start.
 
 ---
 
@@ -84,17 +113,22 @@ cp .env.example .env
 
 Edit `.env` and fill in at minimum:
 
-| Variable                  | What to set                                        |
-| ------------------------- | -------------------------------------------------- |
-| `TS_HOSTNAME`             | Machine name for Tailscale (e.g. `cart-and-cook`)  |
-| `TS_AUTHKEY`              | Auth key from Tailscale admin console              |
-| `DOMAIN`                  | Full FQDN (e.g. `cart-and-cook.your-tailnet.ts.net`) |
-| `DB_PASSWORD`             | A strong random password                           |
-| `KEYCLOAK_ADMIN_PASSWORD` | A strong random password                           |
+| Variable               | What to set                                                     |
+| ---------------------- | --------------------------------------------------------------- |
+| `COMPOSE_PROFILES`     | Which optional services to start (e.g. `keycloak,caddy,ollama`) |
+| `DOMAIN`               | Full FQDN (e.g. `cart-and-cook.your-tailnet.ts.net`)              |
+| `API_URL`              | `https://<DOMAIN>/api`                                          |
+| `CORS_ALLOWED_ORIGINS` | `https://<DOMAIN>`                                              |
+| `OAUTH2_ISSUER_URI`    | `https://<DOMAIN>/auth/realms/cart_and_cook` (for Keycloak)     |
+| `AUTH_AUTHORITY`        | Same as `OAUTH2_ISSUER_URI`                                     |
+| `DB_PASSWORD`          | A strong random password                                        |
+
+If using Keycloak, also set `KEYCLOAK_ADMIN_PASSWORD`.
+If using Caddy, also set `TS_HOSTNAME` and `TS_AUTHKEY`.
 
 Leave `JWT_PUBLIC_KEY` blank for now.
 
-### Step 2: Build the Caddy image
+### Step 2: Build the Caddy image (if using Caddy)
 
 ```bash
 docker compose build caddy
@@ -111,7 +145,7 @@ docker compose pull --ignore-buildable
 ### Step 4: Start Keycloak and PostgreSQL
 
 ```bash
-docker compose up -d postgres keycloak caddy
+docker compose up -d postgres keycloak
 ```
 
 Wait for Keycloak to become healthy:
@@ -194,35 +228,297 @@ Open your browser:
 https://<DOMAIN>
 ```
 
-You'll be redirected to Keycloak to log in, then back to the app.
+You'll be redirected to your auth provider to log in, then back to the app.
+
+---
+
+## AI Configuration
+
+Cart & Cook uses AI to import recipes from images and URLs. AI is **optional** — the app works without it.
+
+### Choosing a provider
+
+Set `AI_PROVIDER` in `.env`:
+
+| Value          | Description                            | Requires              |
+| -------------- | -------------------------------------- | --------------------- |
+| `ollama`       | Local AI via Ollama (default, free)    | `ollama` profile      |
+| `openai`       | OpenAI API                             | `OPENAI_API_KEY`      |
+| `huggingface`  | Hugging Face Inference API             | `HUGGINGFACE_API_KEY` |
+| `bedrock`      | AWS Bedrock                            | AWS credentials       |
+| `disabled`     | No AI features                         | Nothing               |
+
+### Runtime configuration
+
+The active AI provider and model can be changed at any time through the app's **Settings > Runtime** page — no restart required. The `.env` setting controls which provider beans are loaded at startup; the runtime UI overrides which one is actually used.
+
+### Ollama (recommended for self-hosting)
+
+Ollama runs locally with no API keys or cloud dependencies. The bundled Ollama container starts when the `ollama` profile is active.
+
+**After starting the stack, pull a model:**
+
+```bash
+docker compose exec ollama ollama pull qwen2.5:1.5b
+```
+
+**Recommended models for CPU-only hosts (4 cores, 8-16 GB RAM):**
+
+| Model             | Size  | Speed   | Quality | Notes                        |
+| ----------------- | ----- | ------- | ------- | ---------------------------- |
+| `qwen2.5:1.5b`   | 1.5B  | Fast    | Good    | Recommended — best balance   |
+| `phi3:mini`       | 3.8B  | Medium  | Better  | More capable, needs more RAM |
+| `tinyllama`       | 1.1B  | Fastest | Lower   | Lightest option              |
+
+Select the model in **Settings > Runtime** in the app.
+
+**Ollama tuning (`.env`):**
+
+| Variable             | Default               | Description                 |
+| -------------------- | --------------------- | --------------------------- |
+| `OLLAMA_BASE_URL`    | `http://ollama:11434` | Ollama API endpoint         |
+| `OLLAMA_NUM_CTX`     | `2048`                | Context window (tokens)     |
+| `OLLAMA_NUM_THREAD`  | `4`                   | CPU threads (0 = auto)      |
+| `OLLAMA_NUM_PREDICT` | `512`                 | Max output tokens           |
+
+To use an **external Ollama instance** instead of the bundled container, remove `ollama` from `COMPOSE_PROFILES` and set `OLLAMA_BASE_URL` (e.g. `http://host.docker.internal:11434`).
+
+### OpenAI
+
+```bash
+AI_PROVIDER=openai
+OPENAI_API_KEY=sk-...
+```
+
+Default model: `gpt-4o-mini` (changeable in Settings > Runtime).
+
+### AWS Bedrock
+
+```bash
+AI_PROVIDER=bedrock
+```
+
+Uses the default AWS credential chain (env vars, instance role, `~/.aws/credentials`). Default model: `anthropic.claude-3-haiku-20240307-v1:0`, default region: `us-east-1`. Both are changeable in Settings > Runtime.
+
+### Hugging Face
+
+```bash
+AI_PROVIDER=huggingface
+HUGGINGFACE_API_KEY=hf_...
+```
+
+Default model: `Salesforce/blip-image-captioning-large` (changeable in Settings > Runtime).
+
+---
+
+## Using Your Own Reverse Proxy
+
+If you don't want to use the bundled Caddy + Tailscale setup, remove `caddy` from `COMPOSE_PROFILES` and configure your own reverse proxy.
+
+### Required routes
+
+Your proxy must forward these paths to the Docker containers:
+
+| Path       | Upstream                              | Notes                                          |
+| ---------- | ------------------------------------- | ---------------------------------------------- |
+| `/`        | `ui:80` (or `localhost:3000`)         | Frontend — catch-all                           |
+| `/api/*`   | `backend:8081` (or `localhost:8081`)  | Backend API — pass path as-is                  |
+| `/auth/*`  | `keycloak:8080` (or `localhost:8080`) | **Strip `/auth` prefix** before forwarding     |
+
+**Important:** The `/auth` prefix must be stripped before forwarding to Keycloak. Keycloak serves at `/` internally.
+
+### Exposing ports
+
+Uncomment the `ports:` sections in `docker-compose.yml` for the services your proxy needs to reach:
+
+```yaml
+# In docker-compose.yml:
+backend:
+  ports:
+    - "8081:8081"
+
+ui:
+  ports:
+    - "3000:80"
+```
+
+### Example: Nginx
+
+```nginx
+server {
+    listen 443 ssl;
+    server_name cook.example.com;
+
+    ssl_certificate     /path/to/cert.pem;
+    ssl_certificate_key /path/to/key.pem;
+
+    # Frontend
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Backend API
+    location /api/ {
+        proxy_pass http://localhost:8081;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Keycloak — strip /auth prefix
+    location /auth/ {
+        proxy_pass http://localhost:8080/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+### Example: Traefik (Docker labels)
+
+```yaml
+# Add to docker-compose.yml services:
+backend:
+  labels:
+    - "traefik.http.routers.api.rule=Host(`cook.example.com`) && PathPrefix(`/api`)"
+    - "traefik.http.services.api.loadbalancer.server.port=8081"
+
+ui:
+  labels:
+    - "traefik.http.routers.ui.rule=Host(`cook.example.com`)"
+    - "traefik.http.routers.ui.priority=1"
+    - "traefik.http.services.ui.loadbalancer.server.port=80"
+
+keycloak:
+  labels:
+    - "traefik.http.routers.auth.rule=Host(`cook.example.com`) && PathPrefix(`/auth`)"
+    - "traefik.http.middlewares.strip-auth.stripprefix.prefixes=/auth"
+    - "traefik.http.routers.auth.middlewares=strip-auth"
+    - "traefik.http.services.auth.loadbalancer.server.port=8080"
+```
+
+---
+
+## Using Your Own Auth Server
+
+Cart & Cook works with **any OIDC-compatible identity provider**. If you don't want to use Keycloak, remove `keycloak` from `COMPOSE_PROFILES` and configure your provider.
+
+### What the backend needs
+
+| Variable            | Description                                                                                  |
+| ------------------- | -------------------------------------------------------------------------------------------- |
+| `JWT_PUBLIC_KEY`    | Base64-encoded X.509 certificate (RS256 signing key). No PEM headers — just the base64 string. |
+| `OAUTH2_ISSUER_URI` | The JWT `iss` claim value (e.g. `https://tenant.auth0.com/`)                                |
+
+The backend validates tokens **offline** using the public key. It never calls the auth server.
+
+### What the UI needs
+
+| Variable         | Description                                                                             |
+| ---------------- | --------------------------------------------------------------------------------------- |
+| `AUTH_AUTHORITY` | OIDC discovery base URL — the UI fetches `/.well-known/openid-configuration` from here  |
+| `AUTH_CLIENT_ID` | The OIDC client ID registered with your provider                                        |
+
+### Provider-specific notes
+
+**Auth0:**
+
+```bash
+OAUTH2_ISSUER_URI=https://YOUR_TENANT.auth0.com/
+AUTH_AUTHORITY=https://YOUR_TENANT.auth0.com/
+AUTH_CLIENT_ID=your-client-id
+# JWT_PUBLIC_KEY: Download from https://YOUR_TENANT.auth0.com/.well-known/jwks.json
+# Extract the RS256 x5c certificate value (first entry in the array).
+```
+
+**Okta:**
+
+```bash
+OAUTH2_ISSUER_URI=https://YOUR_ORG.okta.com/oauth2/default
+AUTH_AUTHORITY=https://YOUR_ORG.okta.com/oauth2/default
+AUTH_CLIENT_ID=your-client-id
+# JWT_PUBLIC_KEY: Download from https://YOUR_ORG.okta.com/oauth2/default/v1/keys
+# Extract the RS256 x5c certificate value.
+```
+
+**Azure AD:**
+
+```bash
+OAUTH2_ISSUER_URI=https://login.microsoftonline.com/YOUR_TENANT_ID/v2.0
+AUTH_AUTHORITY=https://login.microsoftonline.com/YOUR_TENANT_ID/v2.0
+AUTH_CLIENT_ID=your-client-id
+# JWT_PUBLIC_KEY: Download from https://login.microsoftonline.com/YOUR_TENANT_ID/discovery/v2.0/keys
+# Extract the RS256 x5c certificate value.
+```
+
+### Getting the JWT public key from any OIDC provider
+
+1. Find your provider's JWKS endpoint (usually at `<issuer>/.well-known/openid-configuration` → `jwks_uri`)
+2. Fetch the JWKS JSON
+3. Find the key with `"use": "sig"` and `"alg": "RS256"`
+4. Copy the first value from the `x5c` array — this is the base64 X.509 certificate
+5. Paste it as `JWT_PUBLIC_KEY` in `.env`
 
 ---
 
 ## Environment Variables Reference
 
-| Variable                  | Required | Default                             | Description                                        |
-| ------------------------- | -------- | ----------------------------------- | -------------------------------------------------- |
-| `TS_HOSTNAME`             | Yes      | —                                   | Tailscale machine name (used by Caddy)             |
-| `TS_AUTHKEY`              | Yes      | —                                   | Tailscale auth key                                 |
-| `DOMAIN`                  | Yes      | —                                   | Full FQDN (e.g. `cart-and-cook.your-tailnet.ts.net`) |
-| `DB_USERNAME`             | No       | `postgres`                          | PostgreSQL username                                |
-| `DB_PASSWORD`             | Yes      | —                                   | PostgreSQL password                                |
-| `KEYCLOAK_ADMIN_USERNAME` | No       | `admin`                             | Keycloak admin username                            |
-| `KEYCLOAK_ADMIN_PASSWORD` | Yes      | —                                   | Keycloak admin password                            |
-| `JWT_PUBLIC_KEY`          | Yes      | —                                   | Base64 X.509 certificate from Keycloak             |
-| `CART_AND_COOK_VERSION`   | No       | `release`                           | Docker image tag                                   |
-| `AUTH_CLIENT_ID`          | No       | `cart-and-cook-ui`                  | Keycloak OIDC client ID                            |
-| `OPENAI_API_KEY`          | No       | —                                   | OpenAI API key                                     |
-| `HUGGINGFACE_API_KEY`     | No       | —                                   | Hugging Face API key                               |
-| `OLLAMA_BASE_URL`         | No       | `http://host.docker.internal:11434` | Ollama API URL                                     |
+### Core (always required)
+
+| Variable               | Required | Default              | Description                                         |
+| ---------------------- | -------- | -------------------- | --------------------------------------------------- |
+| `COMPOSE_PROFILES`     | No       | *(empty)*            | Comma-separated profiles: `keycloak,caddy,ollama`   |
+| `DOMAIN`               | Yes      | —                    | Full FQDN (e.g. `cart-and-cook.your-tailnet.ts.net`)  |
+| `API_URL`              | Yes      | —                    | Browser-facing API URL (e.g. `https://<DOMAIN>/api`)|
+| `CORS_ALLOWED_ORIGINS` | Yes      | —                    | Comma-separated allowed origins                     |
+| `OAUTH2_ISSUER_URI`    | Yes      | —                    | JWT issuer — must match `iss` claim in tokens       |
+| `AUTH_AUTHORITY`        | Yes      | —                    | OIDC discovery base URL for the UI                  |
+| `DB_USERNAME`          | No       | `postgres`           | PostgreSQL username                                 |
+| `DB_PASSWORD`          | Yes      | —                    | PostgreSQL password                                 |
+| `JWT_PUBLIC_KEY`       | Yes      | —                    | Base64 X.509 signing certificate                    |
+| `CART_AND_COOK_VERSION`| No       | `release`            | Docker image tag                                    |
+| `AUTH_CLIENT_ID`       | No       | `cart-and-cook-ui`   | OIDC client ID                                      |
+
+### Keycloak (when `keycloak` profile is active)
+
+| Variable                  | Required | Default  | Description                 |
+| ------------------------- | -------- | -------- | --------------------------- |
+| `KEYCLOAK_ADMIN_USERNAME` | No       | `admin`  | Keycloak admin username     |
+| `KEYCLOAK_ADMIN_PASSWORD` | Yes      | —        | Keycloak admin password     |
+
+### Caddy / Tailscale (when `caddy` profile is active)
+
+| Variable       | Required | Default          | Description                |
+| -------------- | -------- | ---------------- | -------------------------- |
+| `TS_HOSTNAME`  | Yes      | —                | Tailscale machine name     |
+| `TS_AUTHKEY`   | Yes      | —                | Tailscale auth key         |
+
+### AI
+
+| Variable              | Required | Default               | Description                              |
+| --------------------- | -------- | --------------------- | ---------------------------------------- |
+| `AI_PROVIDER`         | No       | `ollama`              | `ollama`, `openai`, `huggingface`, `bedrock`, `disabled` |
+| `OPENAI_API_KEY`      | No       | —                     | OpenAI API key                           |
+| `HUGGINGFACE_API_KEY` | No       | —                     | Hugging Face API key                     |
+| `OLLAMA_BASE_URL`     | No       | `http://ollama:11434` | Ollama API URL                           |
+| `OLLAMA_NUM_CTX`      | No       | `2048`                | Context window size (tokens)             |
+| `OLLAMA_NUM_THREAD`   | No       | `4`                   | CPU threads (0 = auto)                   |
+| `OLLAMA_NUM_PREDICT`  | No       | `512`                 | Max output tokens                        |
 
 ---
 
 ## Common Commands
 
 ```bash
-# Start all services
+# Start all services (uses COMPOSE_PROFILES from .env)
 docker compose up -d
+
+# Start specific profiles only
+docker compose --profile keycloak --profile ollama up -d
 
 # View logs
 docker compose logs -f
@@ -245,13 +541,16 @@ docker compose build caddy && docker compose up -d caddy
 # Update to latest images
 docker compose pull --ignore-buildable
 docker compose up -d
+
+# Pull an Ollama model
+docker compose exec ollama ollama pull qwen2.5:1.5b
 ```
 
 ---
 
 ## How JWT Validation Works
 
-The backend validates JWT tokens **entirely offline** — it never contacts Keycloak at runtime.
+The backend validates JWT tokens **entirely offline** — it never contacts the auth server at runtime.
 
 1. At startup, the backend reads `JWT_PUBLIC_KEY` (a base64-encoded X.509 certificate)
 2. It extracts the RSA public key from the certificate
@@ -262,9 +561,9 @@ The backend validates JWT tokens **entirely offline** — it never contacts Keyc
 
 **This means:**
 
-- The backend starts instantly without waiting for Keycloak
-- Network issues between backend and Keycloak don't affect API requests
-- If Keycloak rotates its signing keys, you need to update `JWT_PUBLIC_KEY` and restart the backend
+- The backend starts instantly without waiting for the auth server
+- Network issues between backend and auth server don't affect API requests
+- If the auth server rotates its signing keys, you need to update `JWT_PUBLIC_KEY` and restart the backend
 
 ---
 
@@ -272,15 +571,16 @@ The backend validates JWT tokens **entirely offline** — it never contacts Keyc
 
 Keycloak is configured with:
 
-- `KC_HTTP_RELATIVE_PATH=/auth` — serves under the `/auth` path
-- `KC_PROXY_HEADERS=xforwarded` — trusts `X-Forwarded-*` headers from Caddy
+- `KC_PROXY_HEADERS=xforwarded` — trusts `X-Forwarded-*` headers from the reverse proxy
 - `KC_HOSTNAME=https://<DOMAIN>/auth` — generates correct URLs in tokens and discovery documents
+
+The reverse proxy (Caddy by default) strips the `/auth` prefix before forwarding to Keycloak, which runs at `/` internally.
 
 This means:
 
 - The `iss` (issuer) claim in JWTs will be `https://<DOMAIN>/auth/realms/cart_and_cook`
 - The OIDC discovery endpoint is at `https://<DOMAIN>/auth/realms/cart_and_cook/.well-known/openid-configuration`
-- Both the UI (`AUTH_AUTHORITY`) and backend (`OAUTH2_ISSUER_URI`) are auto-configured to match
+- Both the UI (`AUTH_AUTHORITY`) and backend (`OAUTH2_ISSUER_URI`) must be set to `https://<DOMAIN>/auth/realms/cart_and_cook`
 
 ---
 
@@ -290,7 +590,7 @@ This means:
 
 - Verify `TS_AUTHKEY` is valid and not expired
 - Check if the hostname is already taken: `docker compose logs caddy`
-- Ensure `NET_ADMIN` capability is allowed (Docker Desktop: Settings → General → allow default capabilities)
+- Ensure `NET_ADMIN` capability is allowed (Docker Desktop: Settings > General > allow default capabilities)
 
 ### Keycloak takes a long time to start
 
@@ -304,8 +604,8 @@ Wait for `Listening on: http://0.0.0.0:8080`.
 
 ### 401 Unauthorized from the API
 
-1. **Check `JWT_PUBLIC_KEY`**: Must be the Certificate (not "Public key") from Keycloak's RS256 key
-2. **Check issuer match**: The `iss` claim in the JWT must exactly match the backend's `OAUTH2_ISSUER_URI`. Both are auto-set to `https://<DOMAIN>/auth/realms/cart_and_cook` — verify with:
+1. **Check `JWT_PUBLIC_KEY`**: Must be the Certificate (not "Public key") from your auth provider's RS256 key
+2. **Check issuer match**: The `iss` claim in the JWT must exactly match `OAUTH2_ISSUER_URI`. Verify with:
    ```bash
    # Decode a token (paste it into TOKEN)
    echo "$TOKEN" | cut -d '.' -f2 | base64 -D 2>/dev/null || echo "$TOKEN" | cut -d '.' -f2 | base64 -d
@@ -314,13 +614,13 @@ Wait for `Listening on: http://0.0.0.0:8080`.
 
 ### OIDC login redirects fail
 
-- **Redirect URI mismatch**: In Keycloak client settings, `Valid redirect URIs` must include `https://<DOMAIN>/*`
+- **Redirect URI mismatch**: In your auth provider's client settings, redirect URIs must include `https://<DOMAIN>/*`
 - **Web origins**: Must include `https://<DOMAIN>`
-- **Wrong authority**: The UI's `AUTH_AUTHORITY` must be `https://<DOMAIN>/auth/realms/cart_and_cook`
+- **Wrong authority**: The UI's `AUTH_AUTHORITY` must match the OIDC discovery URL
 
 ### Can't reach the app from another device
 
-- Both devices must be on the same Tailscale network
+- Both devices must be on the same Tailscale network (if using Caddy + Tailscale)
 - Run `tailscale status` on the client device to verify connectivity
 - Try `curl https://<DOMAIN>/api/actuator/health`
 
@@ -328,10 +628,17 @@ Wait for `Listening on: http://0.0.0.0:8080`.
 
 If you rotate Keycloak's signing keys:
 
-1. Go to Keycloak → Realm Settings → Keys → RS256 → Certificate
+1. Go to Keycloak > Realm Settings > Keys > RS256 > Certificate
 2. Copy the new certificate
 3. Update `JWT_PUBLIC_KEY` in `.env`
 4. Restart the backend: `docker compose restart backend`
+
+### AI not working
+
+1. **Check provider**: Verify `AI_PROVIDER` is set correctly in `.env`
+2. **Ollama model not pulled**: Run `docker compose exec ollama ollama pull qwen2.5:1.5b`
+3. **API key missing**: For OpenAI/HuggingFace, check the API key in `.env`
+4. **Check runtime settings**: The Settings > Runtime page in the app overrides `.env` — verify the correct provider and model are selected
 
 ---
 
