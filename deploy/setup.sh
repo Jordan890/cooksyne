@@ -26,6 +26,10 @@ prompt() {
   local current_value
   current_value="$(grep "^${var_name}=" .env 2>/dev/null | cut -d= -f2- || true)"
 
+  if [ "$var_name" = "JWT_PUBLIC_KEY" ] && [ "$current_value" = "PLACEHOLDER_FOR_BUILD" ]; then
+    current_value=""
+  fi
+
   if [ -n "$current_value" ]; then
     printf "  %s [%s]: " "$prompt_text" "$current_value"
     read -r input
@@ -169,6 +173,10 @@ else
 fi
 echo ""
 prompt JWT_PUBLIC_KEY "JWT public key (base64 X.509 certificate)" ""
+
+if [ "$JWT_PUBLIC_KEY" = "PLACEHOLDER_FOR_BUILD" ]; then
+  JWT_PUBLIC_KEY=""
+fi
 
 echo ""
 echo "── Auth Client ──"
