@@ -16,7 +16,9 @@ cd "$SCRIPT_DIR"
 # ── Helpers ───────────────────────────────────────────────────────────
 
 generate_password() {
-  LC_ALL=C tr -dc 'A-Za-z0-9' </dev/urandom | head -c 32
+  # Avoid SIGPIPE from `tr | head` under `set -o pipefail` by generating
+  # a fixed-width hex token directly from /dev/urandom.
+  LC_ALL=C od -An -N16 -tx1 /dev/urandom | tr -d ' \n'
 }
 
 prompt() {
