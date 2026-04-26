@@ -1,6 +1,6 @@
-# Cart & Cook — Deployment Guide
+# Cooksyne — Deployment Guide
 
-Self-hosted deployment of Cart & Cook using Docker Compose.
+Self-hosted deployment of Cooksyne using Docker Compose.
 
 By default the stack includes Keycloak (authentication), Caddy with Tailscale (HTTPS reverse proxy), and Ollama (local AI). Each of these is optional — you can bring your own auth server, reverse proxy, or AI provider.
 
@@ -116,10 +116,10 @@ Edit `.env` and fill in at minimum:
 | Variable               | What to set                                                     |
 | ---------------------- | --------------------------------------------------------------- |
 | `COMPOSE_PROFILES`     | Which optional services to start (e.g. `keycloak,caddy,ollama`) |
-| `DOMAIN`               | Full FQDN (e.g. `cart-and-cook.your-tailnet.ts.net`)            |
+| `DOMAIN`               | Full FQDN (e.g. `cooksyne.your-tailnet.ts.net`)            |
 | `API_URL`              | `https://<DOMAIN>/api`                                          |
 | `CORS_ALLOWED_ORIGINS` | `https://<DOMAIN>`                                              |
-| `OAUTH2_ISSUER_URI`    | `https://<DOMAIN>/auth/realms/cart_and_cook` (for Keycloak)     |
+| `OAUTH2_ISSUER_URI`    | `https://<DOMAIN>/auth/realms/cooksyne` (for Keycloak)     |
 | `AUTH_AUTHORITY`       | Same as `OAUTH2_ISSUER_URI`                                     |
 | `DB_PASSWORD`          | A strong random password                                        |
 
@@ -169,14 +169,14 @@ Log in with the admin credentials from `.env`.
 #### Create the realm
 
 1. Click the realm dropdown (top-left) → **Create realm**
-2. Realm name: `cart_and_cook`
+2. Realm name: `cooksyne`
 3. Click **Create**
 
 #### Create the OIDC client
 
 1. Go to **Clients** → **Create client**
 2. Fill in:
-   - **Client ID**: `cart-and-cook-ui`
+   - **Client ID**: `cooksyne-ui`
    - **Client type**: OpenID Connect
 3. Click **Next**, then **Next** again (defaults are fine for public client)
 4. Set:
@@ -234,7 +234,7 @@ You'll be redirected to your auth provider to log in, then back to the app.
 
 ## AI Configuration
 
-Cart & Cook uses AI to import recipes from images and URLs. AI is **optional** — the app works without it.
+Cooksyne uses AI to import recipes from images and URLs. AI is **optional** — the app works without it.
 
 ### Choosing a provider
 
@@ -405,7 +405,7 @@ keycloak:
 
 ## Using Your Own Auth Server
 
-Cart & Cook works with **any OIDC-compatible identity provider**. If you don't want to use Keycloak, remove `keycloak` from `COMPOSE_PROFILES` and configure your provider.
+Cooksyne works with **any OIDC-compatible identity provider**. If you don't want to use Keycloak, remove `keycloak` from `COMPOSE_PROFILES` and configure your provider.
 
 ### What the backend needs
 
@@ -472,7 +472,7 @@ AUTH_CLIENT_ID=your-client-id
 | Variable                | Required | Default            | Description                                          |
 | ----------------------- | -------- | ------------------ | ---------------------------------------------------- |
 | `COMPOSE_PROFILES`      | No       | _(empty)_          | Comma-separated profiles: `keycloak,caddy,ollama`    |
-| `DOMAIN`                | Yes      | —                  | Full FQDN (e.g. `cart-and-cook.your-tailnet.ts.net`) |
+| `DOMAIN`                | Yes      | —                  | Full FQDN (e.g. `cooksyne.your-tailnet.ts.net`) |
 | `API_URL`               | Yes      | —                  | Browser-facing API URL (e.g. `https://<DOMAIN>/api`) |
 | `CORS_ALLOWED_ORIGINS`  | Yes      | —                  | Comma-separated allowed origins                      |
 | `OAUTH2_ISSUER_URI`     | Yes      | —                  | JWT issuer — must match `iss` claim in tokens        |
@@ -480,8 +480,8 @@ AUTH_CLIENT_ID=your-client-id
 | `DB_USERNAME`           | No       | `postgres`         | PostgreSQL username                                  |
 | `DB_PASSWORD`           | Yes      | —                  | PostgreSQL password                                  |
 | `JWT_PUBLIC_KEY`        | Yes      | —                  | Base64 X.509 signing certificate                     |
-| `CART_AND_COOK_VERSION` | No       | `release`          | Docker image tag                                     |
-| `AUTH_CLIENT_ID`        | No       | `cart-and-cook-ui` | OIDC client ID                                       |
+| `COOKSYNE_VERSION` | No       | `release`          | Docker image tag                                     |
+| `AUTH_CLIENT_ID`        | No       | `cooksyne-ui` | OIDC client ID                                       |
 
 ### Keycloak (when `keycloak` profile is active)
 
@@ -578,9 +578,9 @@ The reverse proxy (Caddy by default) strips the `/auth` prefix before forwarding
 
 This means:
 
-- The `iss` (issuer) claim in JWTs will be `https://<DOMAIN>/auth/realms/cart_and_cook`
-- The OIDC discovery endpoint is at `https://<DOMAIN>/auth/realms/cart_and_cook/.well-known/openid-configuration`
-- Both the UI (`AUTH_AUTHORITY`) and backend (`OAUTH2_ISSUER_URI`) must be set to `https://<DOMAIN>/auth/realms/cart_and_cook`
+- The `iss` (issuer) claim in JWTs will be `https://<DOMAIN>/auth/realms/cooksyne`
+- The OIDC discovery endpoint is at `https://<DOMAIN>/auth/realms/cooksyne/.well-known/openid-configuration`
+- Both the UI (`AUTH_AUTHORITY`) and backend (`OAUTH2_ISSUER_URI`) must be set to `https://<DOMAIN>/auth/realms/cooksyne`
 
 ---
 
@@ -654,8 +654,8 @@ docker compose pull --ignore-buildable
 docker compose up -d
 ```
 
-To pin a specific version, set `CART_AND_COOK_VERSION` in `.env`:
+To pin a specific version, set `COOKSYNE_VERSION` in `.env`:
 
 ```bash
-CART_AND_COOK_VERSION=1.0.0
+COOKSYNE_VERSION=1.0.0
 ```

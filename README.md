@@ -1,16 +1,16 @@
-# Cart and Cook
+# Cooksyne
 
-A self-hosted recipe and grocery list manager with AI-powered food analysis. Upload a photo of food or a recipe, and Cart & Cook identifies it and can generate a grocery list — all running on your own infrastructure.
+A self-hosted recipe and grocery list manager with AI-powered food analysis. Upload a photo of food or a recipe, and Cooksyne identifies it and can generate a grocery list — all running on your own infrastructure.
 
 ## Self-Hosting (Docker)
 
-The recommended way to run Cart & Cook is with Docker Compose. The `deploy/` directory contains the full stack including the frontend, backend, PostgreSQL, and Keycloak.
+The recommended way to run Cooksyne is with Docker Compose. The `deploy/` directory contains the full stack including the frontend, backend, PostgreSQL, and Keycloak.
 
 **Quick start:**
 
 ```bash
-git clone https://github.com/Jordan890/cart_and_cook.git
-cd cart_and_cook/deploy
+git clone https://github.com/Jordan890/cooksyne.git
+cd cooksyne/deploy
 chmod +x setup.sh
 ./setup.sh
 ```
@@ -47,14 +47,14 @@ If you want to contribute or run from source, follow this section instead of Doc
 ### Startup Sequence
 
 1. Start PostgreSQL and confirm the database is reachable.
-2. Start Keycloak and confirm the realm issuer is available at `http://localhost:8080/realms/cart_and_cook`.
+2. Start Keycloak and confirm the realm issuer is available at `http://localhost:8080/realms/cooksyne`.
 3. Export environment variables:
 
 ```bash
-export DB_URL='jdbc:postgresql://localhost:5432/cart_and_cook'
+export DB_URL='jdbc:postgresql://localhost:5432/cooksyne'
 export DB_USERNAME='postgres'
 export DB_PASSWORD=''
-export OAUTH2_ISSUER_URI='http://localhost:8080/realms/cart_and_cook'
+export OAUTH2_ISSUER_URI='http://localhost:8080/realms/cooksyne'
 export PORT='8081'
 export OPENAI_API_KEY='your-openai-key'         # if using OpenAI
 export HUGGINGFACE_API_KEY='your-huggingface-key' # if using Hugging Face
@@ -66,7 +66,7 @@ export HUGGINGFACE_API_KEY='your-huggingface-key' # if using Hugging Face
 ./gradlew :runtime:self-hosted:bootRun
 ```
 
-5. Start the [UI repository](https://github.com/Jordan890/cart_and_cook_ui) and authenticate.
+5. Start the [UI repository](https://github.com/Jordan890/cooksyne_ui) and authenticate.
 6. Use `/settings/runtime` in the UI to configure AI provider/models.
 
 ### Build and Test Commands
@@ -80,17 +80,17 @@ export HUGGINGFACE_API_KEY='your-huggingface-key' # if using Hugging Face
 ### Building Docker Images Locally
 
 ```bash
-# Backend (from cart_and_cook root)
-docker build -t ghcr.io/jordan890/cart-and-cook-api:local .
+# Backend (from cooksyne root)
+docker build -t ghcr.io/jordan890/cooksyne-api:local .
 
-# Frontend (from cart_and_cook_ui/cart-and-cook-ui)
-docker build -t ghcr.io/jordan890/cart-and-cook-ui:local .
+# Frontend (from cooksyne_ui/cooksyne-ui)
+docker build -t ghcr.io/jordan890/cooksyne-ui:local .
 ```
 
 Then set in `.env`:
 
 ```bash
-CART_AND_COOK_VERSION=local
+COOKSYNE_VERSION=local
 ```
 
 ### Repository Structure
@@ -109,15 +109,15 @@ CART_AND_COOK_VERSION=local
 
 | Variable                        | Purpose                          | Default                                          |
 | ------------------------------- | -------------------------------- | ------------------------------------------------ |
-| `DB_URL`                        | JDBC connection string           | `jdbc:postgresql://localhost:5432/cart_and_cook` |
+| `DB_URL`                        | JDBC connection string           | `jdbc:postgresql://localhost:5432/cooksyne` |
 | `DB_USERNAME`                   | Database user                    | `postgres`                                       |
 | `DB_PASSWORD`                   | Database password                | (empty)                                          |
-| `OAUTH2_ISSUER_URI`             | JWT issuer for token validation  | `http://localhost:8080/realms/cart_and_cook`     |
+| `OAUTH2_ISSUER_URI`             | JWT issuer for token validation  | `http://localhost:8080/realms/cooksyne`     |
 | `PORT`                          | Backend HTTP port                | `8081`                                           |
 | `CORS_ALLOWED_ORIGINS`          | Comma-separated allowed origins  | `http://localhost:4200,http://localhost:9090`    |
 | `OPENAI_API_KEY`                | OpenAI API key                   | (empty)                                          |
 | `HUGGINGFACE_API_KEY`           | Hugging Face API key             | (empty)                                          |
-| `CARTANDCOOK_STORAGE_IMAGE_DIR` | Override image storage directory | `${user.home}/.cartandcook/images`               |
+| `COOKSYNE_STORAGE_IMAGE_DIR` | Override image storage directory | `${user.home}/.cooksyne/images`               |
 
 ### Runtime Configuration (UI-Editable)
 

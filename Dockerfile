@@ -16,9 +16,9 @@ FROM eclipse-temurin:21-jre
 WORKDIR /app
 
 ARG APP_VERSION=0.0.0
-LABEL org.opencontainers.image.title="cart-and-cook-api" \
+LABEL org.opencontainers.image.title="cooksyne-api" \
     org.opencontainers.image.version="${APP_VERSION}" \
-    org.opencontainers.image.description="Cart & Cook backend API"
+    org.opencontainers.image.description="Cooksyne backend API"
 
 RUN apt-get update && apt-get install -y --no-install-recommends curl tesseract-ocr tesseract-ocr-eng && rm -rf /var/lib/apt/lists/*
 

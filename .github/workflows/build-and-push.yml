@@ -1,5 +1,5 @@
 # ─────────────────────────────────────────────────────────────────────
-# Build & push the Cart & Cook API image to ghcr.io
+# Build & push the Cooksyne API image to ghcr.io
 # ─────────────────────────────────────────────────────────────────────
 name: Build & Push API Image
 
@@ -12,7 +12,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository_owner }}/cart-and-cook-api
+  IMAGE_NAME: ${{ github.repository_owner }}/cooksyne-api
 
 jobs:
   build-and-push:

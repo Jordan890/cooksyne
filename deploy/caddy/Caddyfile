@@ -1,5 +1,5 @@
 # ─────────────────────────────────────────────────────────────────────
-# Cart & Cook — Caddy reverse proxy with Tailscale HTTPS
+# Cooksyne — Caddy reverse proxy with Tailscale HTTPS
 # ─────────────────────────────────────────────────────────────────────
 # Caddy obtains TLS certificates automatically from Tailscale.
 # All browser traffic arrives over HTTPS on the tailnet hostname.

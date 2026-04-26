@@ -1,4 +1,4 @@
-rootProject.name = "cart_and_cook"
+rootProject.name = "cooksyne"
 
 include("core")
 include("runtime:self-hosted")

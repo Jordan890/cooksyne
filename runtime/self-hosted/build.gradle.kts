@@ -41,5 +41,5 @@ java {
 }
 
 springBoot {
-    mainClass = "com.cartandcook.selfhosted.Application"
+    mainClass = "com.cooksyne.selfhosted.Application"
 }

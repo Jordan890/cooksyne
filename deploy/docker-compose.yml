@@ -1,5 +1,5 @@
 # ─────────────────────────────────────────────────────────────────────
-# Cart & Cook — Docker Compose Stack
+# Cooksyne — Docker Compose Stack
 # ─────────────────────────────────────────────────────────────────────
 # Usage:
 #   cp .env.example .env   # edit with your values
@@ -14,7 +14,7 @@ services:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_DB: cart_and_cook
+      POSTGRES_DB: cooksyne
       POSTGRES_USER: ${DB_USERNAME:-postgres}
       POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
     volumes:
@@ -22,7 +22,7 @@ services:
       - ./postgres/init-keycloak-schema.sql:/docker-entrypoint-initdb.d/init-keycloak-schema.sql:ro
     healthcheck:
       test:
-        ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-postgres} -d cart_and_cook"]
+        ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-postgres} -d cooksyne"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -39,7 +39,7 @@ services:
     environment:
       # Database
       KC_DB: postgres
-      KC_DB_URL: jdbc:postgresql://postgres:5432/cart_and_cook
+      KC_DB_URL: jdbc:postgresql://postgres:5432/cooksyne
       KC_DB_USERNAME: ${DB_USERNAME:-postgres}
       KC_DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
       KC_DB_SCHEMA: keycloak
@@ -78,7 +78,7 @@ services:
 
   # ── Backend API ─────────────────────────────────────────────────────
   backend:
-    image: ghcr.io/jordan890/cart-and-cook-api:${CART_AND_COOK_VERSION:-release}
+    image: ghcr.io/jordan890/cooksyne-api:${COOKSYNE_VERSION:-release}
     restart: unless-stopped
     # Uncomment to expose directly when not using Caddy:
     # ports:
@@ -88,7 +88,7 @@ services:
         condition: service_healthy
     environment:
       # Database
-      DB_URL: jdbc:postgresql://postgres:5432/cart_and_cook
+      DB_URL: jdbc:postgresql://postgres:5432/cooksyne
       DB_USERNAME: ${DB_USERNAME:-postgres}
       DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
 
@@ -113,7 +113,7 @@ services:
       AI_PROVIDER: ${AI_PROVIDER:-ollama}
 
       # Image storage
-      CARTANDCOOK_STORAGE_IMAGE_DIR: /app/images
+      COOKSYNE_STORAGE_IMAGE_DIR: /app/images
     volumes:
       - images:/app/images
     healthcheck:
@@ -125,7 +125,7 @@ services:
 
   # ── Frontend UI ─────────────────────────────────────────────────────
   ui:
-    image: ghcr.io/jordan890/cart-and-cook-ui:${CART_AND_COOK_VERSION:-release}
+    image: ghcr.io/jordan890/cooksyne-ui:${COOKSYNE_VERSION:-release}
     restart: unless-stopped
     # Uncomment to expose directly when not using Caddy:
     # ports:
@@ -133,7 +133,7 @@ services:
     environment:
       API_URL: ${API_URL:?API_URL is required - see README.md}
       AUTH_AUTHORITY: ${AUTH_AUTHORITY:?AUTH_AUTHORITY is required - see README.md}
-      AUTH_CLIENT_ID: ${AUTH_CLIENT_ID:-cart-and-cook-ui}
+      AUTH_CLIENT_ID: ${AUTH_CLIENT_ID:-cooksyne-ui}
       AUTH_RUNTIME: oidc
 
   # ── Ollama (local AI) ───────────────────────────────────────────────

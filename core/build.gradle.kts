@@ -3,7 +3,7 @@ plugins {
     id("io.spring.dependency-management") version "1.1.7"
 }
 
-group = "com.jordanahlers.cartandcook.core"
+group = "com.jordanahlers.cooksyne.core"
 version = "0.0.1-SNAPSHOT"
 description = "Core module - domain, services, and API interfaces"
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ─────────────────────────────────────────────────────────────────────
-# Cart & Cook — Setup Script
+# Cooksyne — Setup Script
 # ─────────────────────────────────────────────────────────────────────
 # Generates secrets, creates .env, builds images, and starts the stack.
 #
@@ -60,7 +60,7 @@ prompt_yn() {
 
 echo ""
 echo "============================================="
-echo "   Cart & Cook — Setup"
+echo "   Cooksyne — Setup"
 echo "============================================="
 echo ""
 
@@ -76,7 +76,7 @@ fi
 
 echo "── Optional Components ──"
 echo ""
-echo "  Cart & Cook includes optional bundled services."
+echo "  Cooksyne includes optional bundled services."
 echo "  You can skip any of these if you provide your own."
 echo ""
 
@@ -100,7 +100,7 @@ echo ""
 if [ "$USE_CADDY" = "y" ]; then
   echo "  The app will be available at https://<hostname>.<tailnet>.ts.net"
   echo ""
-  prompt TS_HOSTNAME "Tailscale machine name (e.g. cart-and-cook)" "cart-and-cook"
+  prompt TS_HOSTNAME "Tailscale machine name (e.g. cooksyne)" "cooksyne"
   prompt TS_AUTHKEY  "Tailscale auth key (from https://login.tailscale.com/admin/settings/keys)" ""
   echo ""
   echo "  Full domain: <TS_HOSTNAME>.<tailnet-name>.ts.net"
@@ -121,8 +121,8 @@ API_URL="${PROTOCOL}://${DOMAIN}/api"
 CORS_ALLOWED_ORIGINS="${PROTOCOL}://${DOMAIN}"
 
 if [ "$USE_KEYCLOAK" = "y" ]; then
-  OAUTH2_ISSUER_URI="${PROTOCOL}://${DOMAIN}/auth/realms/cart_and_cook"
-  AUTH_AUTHORITY="${PROTOCOL}://${DOMAIN}/auth/realms/cart_and_cook"
+  OAUTH2_ISSUER_URI="${PROTOCOL}://${DOMAIN}/auth/realms/cooksyne"
+  AUTH_AUTHORITY="${PROTOCOL}://${DOMAIN}/auth/realms/cooksyne"
 else
   echo ""
   echo "── External Auth Server ──"
@@ -158,7 +158,7 @@ fi
 echo ""
 echo "── Image Version ──"
 echo ""
-prompt CART_AND_COOK_VERSION "Image tag" "release"
+prompt COOKSYNE_VERSION "Image tag" "release"
 
 echo ""
 echo "── JWT Public Key (optional — can set later) ──"
@@ -181,7 +181,7 @@ fi
 echo ""
 echo "── Auth Client ──"
 echo ""
-prompt AUTH_CLIENT_ID "OIDC client ID" "cart-and-cook-ui"
+prompt AUTH_CLIENT_ID "OIDC client ID" "cooksyne-ui"
 
 # ── AI Configuration ─────────────────────────────────────────────────
 
@@ -244,7 +244,7 @@ OAUTH2_ISSUER_URI=${OAUTH2_ISSUER_URI}
 AUTH_AUTHORITY=${AUTH_AUTHORITY}
 
 # ── Image version ────────────────────────────────────────────────────
-CART_AND_COOK_VERSION=${CART_AND_COOK_VERSION}
+COOKSYNE_VERSION=${COOKSYNE_VERSION}
 
 # ── Database ──────────────────────────────────────────────────────────
 DB_USERNAME=${DB_USERNAME}
@@ -318,7 +318,7 @@ if [ "$USE_KEYCLOAK" = "y" ] && [ -z "$JWT_PUBLIC_KEY" ]; then
   fi
   echo ""
   echo "  2. Log in:  ${KEYCLOAK_ADMIN_USERNAME} / ${KEYCLOAK_ADMIN_PASSWORD}"
-  echo "  3. Create realm: cart_and_cook"
+  echo "  3. Create realm: cooksyne"
   echo "  4. Create client: ${AUTH_CLIENT_ID}"
   echo "       - Client type: OpenID Connect"
   echo "       - Valid redirect URIs: https://${DOMAIN}/*"
@@ -340,7 +340,7 @@ elif [ -z "$JWT_PUBLIC_KEY" ]; then
   echo ""
 else
   echo "============================================="
-  echo "   Starting Cart & Cook"
+  echo "   Starting Cooksyne"
   echo "============================================="
   echo ""
   docker compose up -d

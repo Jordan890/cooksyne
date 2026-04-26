@@ -1,0 +1,53 @@
+package com.cooksyne.adapters.persistencejpa;
+
+import com.cooksyne.core.domain.IngredientQuantity;
+import com.cooksyne.core.domain.Quantity;
+import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
+import java.util.List;
+
+@Entity
+@Table(name = "recipes")
+@Getter
+@Setter
+@NoArgsConstructor
+public class RecipeEntity {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "recipe_seq")
+    @SequenceGenerator(name = "recipe_seq", sequenceName = "recipe_sequence", allocationSize = 50)
+    private Long id;
+
+    @Column(nullable = false)
+    private String name;
+
+    @Column(nullable = false)
+    private String category;
+
+    @Column(columnDefinition = "text")
+    private String description;
+
+    @Column
+    private String imageUrl;
+
+    // Store RecipeIngredient list as JSON
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(nullable = false)
+    private List<IngredientQuantity> ingredients;
+
+    @Column
+    private Integer estimatedCalories;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column
+    private Quantity servingSize;
+
+    // --- new field for ownership ---
+    @Column(nullable = false)
+    private Long ownerId;
+}

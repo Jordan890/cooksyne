@@ -4,7 +4,7 @@ plugins {
 	id("io.spring.dependency-management") version "1.1.7"
 }
 
-group = "com.jordanahlers.cartandcook"
+group = "com.jordanahlers.cooksyne"
 version = "0.0.1-SNAPSHOT"
 description = "Recipe And Grocery Cart App"
 

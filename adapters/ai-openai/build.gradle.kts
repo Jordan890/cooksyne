@@ -4,7 +4,7 @@ plugins {
     id("io.spring.dependency-management") version "1.1.7"
 }
 
-group = "com.jordanahlers.cartandcook.adapters"
+group = "com.jordanahlers.cooksyne.adapters"
 version = "0.0.1-SNAPSHOT"
 description = "AI Adapter - OpenAI"
 
