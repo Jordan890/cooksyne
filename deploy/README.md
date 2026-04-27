@@ -116,10 +116,10 @@ Edit `.env` and fill in at minimum:
 | Variable               | What to set                                                     |
 | ---------------------- | --------------------------------------------------------------- |
 | `COMPOSE_PROFILES`     | Which optional services to start (e.g. `keycloak,caddy,ollama`) |
-| `DOMAIN`               | Full FQDN (e.g. `cooksyne.your-tailnet.ts.net`)            |
+| `DOMAIN`               | Full FQDN (e.g. `cooksyne.your-tailnet.ts.net`)                 |
 | `API_URL`              | `https://<DOMAIN>/api`                                          |
 | `CORS_ALLOWED_ORIGINS` | `https://<DOMAIN>`                                              |
-| `OAUTH2_ISSUER_URI`    | `https://<DOMAIN>/auth/realms/cooksyne` (for Keycloak)     |
+| `OAUTH2_ISSUER_URI`    | `https://<DOMAIN>/auth/realms/cooksyne` (for Keycloak)          |
 | `AUTH_AUTHORITY`       | Same as `OAUTH2_ISSUER_URI`                                     |
 | `DB_PASSWORD`          | A strong random password                                        |
 
@@ -128,13 +128,14 @@ If using Caddy, also set `TS_HOSTNAME` and `TS_AUTHKEY`.
 
 Leave `JWT_PUBLIC_KEY` blank for now.
 
-### Step 2: Build the Caddy image (if using Caddy)
+### Step 2: Build custom images
 
 ```bash
-docker compose build caddy
+docker compose build keycloak   # if using the bundled Keycloak profile
+docker compose build caddy      # if using the bundled Caddy profile
 ```
 
-This builds Caddy with the Tailscale plugin. Only needed once (or after updating).
+This builds the custom Keycloak image with the bundled Cooksyne realm import and login theme, plus Caddy with the Tailscale plugin. Only build the services you plan to run.
 
 ### Step 3: Pull application images
 
@@ -156,7 +157,7 @@ docker compose logs -f keycloak
 
 Look for `Listening on: http://0.0.0.0:8080` in the logs.
 
-### Step 5: Configure Keycloak
+### Step 5: Finish Keycloak bootstrap
 
 Open Keycloak in your browser:
 
@@ -166,24 +167,16 @@ https://<DOMAIN>/auth/
 
 Log in with the admin credentials from `.env`.
 
-#### Create the realm
+#### Verify the bundled realm import
 
-1. Click the realm dropdown (top-left) → **Create realm**
-2. Realm name: `cooksyne`
-3. Click **Create**
+On first start, the custom Keycloak image automatically imports:
 
-#### Create the OIDC client
+1. Realm: `cooksyne`
+2. Login theme: `cooksyne`
+3. OIDC client: `cooksyne-ui` (or whatever `AUTH_CLIENT_ID` is set to)
+4. Redirects and origins derived from `DOMAIN`
 
-1. Go to **Clients** → **Create client**
-2. Fill in:
-   - **Client ID**: `cooksyne-ui`
-   - **Client type**: OpenID Connect
-3. Click **Next**, then **Next** again (defaults are fine for public client)
-4. Set:
-   - **Valid redirect URIs**: `https://<DOMAIN>/*`
-   - **Valid post logout redirect URIs**: `https://<DOMAIN>/*`
-   - **Web origins**: `https://<DOMAIN>`
-5. Click **Save**
+You can confirm this in **Realm settings** and **Clients** after logging in.
 
 #### Create a user
 
@@ -199,6 +192,8 @@ Log in with the admin credentials from `.env`.
 2. Find the **RS256** row
 3. Click **Certificate** (not "Public key")
 4. Copy the entire base64 string
+
+The imported realm already uses the custom Cooksyne login theme, so the public login page should reflect the new branding as soon as Keycloak starts.
 
 ### Step 7: Set `JWT_PUBLIC_KEY` and start the full stack
 
@@ -469,19 +464,19 @@ AUTH_CLIENT_ID=your-client-id
 
 ### Core (always required)
 
-| Variable                | Required | Default            | Description                                          |
-| ----------------------- | -------- | ------------------ | ---------------------------------------------------- |
-| `COMPOSE_PROFILES`      | No       | _(empty)_          | Comma-separated profiles: `keycloak,caddy,ollama`    |
-| `DOMAIN`                | Yes      | —                  | Full FQDN (e.g. `cooksyne.your-tailnet.ts.net`) |
-| `API_URL`               | Yes      | —                  | Browser-facing API URL (e.g. `https://<DOMAIN>/api`) |
-| `CORS_ALLOWED_ORIGINS`  | Yes      | —                  | Comma-separated allowed origins                      |
-| `OAUTH2_ISSUER_URI`     | Yes      | —                  | JWT issuer — must match `iss` claim in tokens        |
-| `AUTH_AUTHORITY`        | Yes      | —                  | OIDC discovery base URL for the UI                   |
-| `DB_USERNAME`           | No       | `postgres`         | PostgreSQL username                                  |
-| `DB_PASSWORD`           | Yes      | —                  | PostgreSQL password                                  |
-| `JWT_PUBLIC_KEY`        | Yes      | —                  | Base64 X.509 signing certificate                     |
-| `COOKSYNE_VERSION` | No       | `release`          | Docker image tag                                     |
-| `AUTH_CLIENT_ID`        | No       | `cooksyne-ui` | OIDC client ID                                       |
+| Variable               | Required | Default       | Description                                          |
+| ---------------------- | -------- | ------------- | ---------------------------------------------------- |
+| `COMPOSE_PROFILES`     | No       | _(empty)_     | Comma-separated profiles: `keycloak,caddy,ollama`    |
+| `DOMAIN`               | Yes      | —             | Full FQDN (e.g. `cooksyne.your-tailnet.ts.net`)      |
+| `API_URL`              | Yes      | —             | Browser-facing API URL (e.g. `https://<DOMAIN>/api`) |
+| `CORS_ALLOWED_ORIGINS` | Yes      | —             | Comma-separated allowed origins                      |
+| `OAUTH2_ISSUER_URI`    | Yes      | —             | JWT issuer — must match `iss` claim in tokens        |
+| `AUTH_AUTHORITY`       | Yes      | —             | OIDC discovery base URL for the UI                   |
+| `DB_USERNAME`          | No       | `postgres`    | PostgreSQL username                                  |
+| `DB_PASSWORD`          | Yes      | —             | PostgreSQL password                                  |
+| `JWT_PUBLIC_KEY`       | Yes      | —             | Base64 X.509 signing certificate                     |
+| `COOKSYNE_VERSION`     | No       | `release`     | Docker image tag                                     |
+| `AUTH_CLIENT_ID`       | No       | `cooksyne-ui` | OIDC client ID                                       |
 
 ### Keycloak (when `keycloak` profile is active)
 

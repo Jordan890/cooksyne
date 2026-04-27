@@ -288,6 +288,12 @@ if [ "$USE_CADDY" = "y" ]; then
   echo ""
 fi
 
+if [ "$USE_KEYCLOAK" = "y" ]; then
+  echo "Building Keycloak image (realm import + Cooksyne theme)..."
+  docker compose build keycloak
+  echo ""
+fi
+
 # ── Pull application images ───────────────────────────────────────────
 
 echo "Pulling application images..."
@@ -302,7 +308,7 @@ if [ "$USE_KEYCLOAK" = "y" ] && [ -z "$JWT_PUBLIC_KEY" ]; then
   echo "============================================="
   echo ""
   echo "JWT_PUBLIC_KEY is not set yet. Starting Keycloak and"
-  echo "PostgreSQL so you can configure the realm."
+  echo "PostgreSQL so you can create a user and export the signing certificate."
   echo ""
 
   docker compose up -d postgres keycloak
@@ -318,15 +324,12 @@ if [ "$USE_KEYCLOAK" = "y" ] && [ -z "$JWT_PUBLIC_KEY" ]; then
   fi
   echo ""
   echo "  2. Log in:  ${KEYCLOAK_ADMIN_USERNAME} / ${KEYCLOAK_ADMIN_PASSWORD}"
-  echo "  3. Create realm: cooksyne"
-  echo "  4. Create client: ${AUTH_CLIENT_ID}"
-  echo "       - Client type: OpenID Connect"
-  echo "       - Valid redirect URIs: https://${DOMAIN}/*"
-  echo "       - Web origins: https://${DOMAIN}"
-  echo "  5. Create a user and set a password"
-  echo "  6. Get the JWT certificate:"
+  echo "  3. The cooksyne realm and ${AUTH_CLIENT_ID} client are imported automatically"
+  echo "     using DOMAIN=${DOMAIN}"
+  echo "  4. Create a user and set a password"
+  echo "  5. Get the JWT certificate:"
   echo "       Realm Settings > Keys > RS256 row > Certificate"
-  echo "  7. Re-run this script and paste the certificate:"
+  echo "  6. Re-run this script and paste the certificate:"
   echo "       ./setup.sh"
   echo ""
 elif [ -z "$JWT_PUBLIC_KEY" ]; then

@@ -21,18 +21,17 @@ services:
       - pgdata:/var/lib/postgresql/data
       - ./postgres/init-keycloak-schema.sql:/docker-entrypoint-initdb.d/init-keycloak-schema.sql:ro
     healthcheck:
-      test:
-        ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-postgres} -d cooksyne"]
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_USERNAME:-postgres} -d cooksyne" ]
       interval: 10s
       timeout: 5s
       retries: 5
 
   # ── Keycloak ────────────────────────────────────────────────────────
   keycloak:
-    image: quay.io/keycloak/keycloak:26.1
+    build: ./keycloak
     restart: unless-stopped
-    profiles: ["keycloak"]
-    command: start
+    profiles: [ "keycloak" ]
+    command: [ "start", "--import-realm" ]
     depends_on:
       postgres:
         condition: service_healthy
@@ -47,6 +46,7 @@ services:
       # Admin credentials (first launch only)
       KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USERNAME:-admin}
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?KEYCLOAK_ADMIN_PASSWORD is required}
+      AUTH_CLIENT_ID: ${AUTH_CLIENT_ID:-cooksyne-ui}
 
       # Reverse proxy support — Caddy sends X-Forwarded-* headers
       KC_PROXY_HEADERS: xforwarded
@@ -69,7 +69,9 @@ services:
       test:
         [
           "CMD-SHELL",
-          "exec 3<>/dev/tcp/localhost/9000 && echo -e 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && cat <&3 | grep -q '200'",
+          "exec 3<>/dev/tcp/localhost/9000 && echo -e 'GET /health/ready
+            HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n'
+            >&3 && cat <&3 | grep -q '200'",
         ]
       interval: 15s
       timeout: 5s
@@ -117,7 +119,7 @@ services:
     volumes:
       - images:/app/images
     healthcheck:
-      test: ["CMD", "curl", "-sf", "http://localhost:8081/api/actuator/health"]
+      test: [ "CMD", "curl", "-sf", "http://localhost:8081/api/actuator/health" ]
       interval: 15s
       timeout: 5s
       start_period: 30s
@@ -140,7 +142,7 @@ services:
   ollama:
     image: ollama/ollama:latest
     restart: unless-stopped
-    profiles: ["ollama"]
+    profiles: [ "ollama" ]
     volumes:
       - ollama_data:/root/.ollama
     # Uncomment for NVIDIA GPU support:
@@ -152,11 +154,11 @@ services:
     #           count: all
     #           capabilities: [gpu]
 
-  # ── Caddy (Tailscale TLS reverse proxy) ─────────────────────────────
+    # ── Caddy (Tailscale TLS reverse proxy) ─────────────────────────────
   caddy:
     build: ./caddy
     restart: unless-stopped
-    profiles: ["caddy"]
+    profiles: [ "caddy" ]
     depends_on:
       - ui
       - backend

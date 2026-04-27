@@ -1,0 +1,65 @@
+{
+  "id": "cooksyne",
+  "realm": "cooksyne",
+  "displayName": "Cooksyne",
+  "displayNameHtml": "Cooksyne",
+  "enabled": true,
+  "sslRequired": "external",
+  "registrationAllowed": false,
+  "registrationEmailAsUsername": false,
+  "rememberMe": true,
+  "verifyEmail": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "editUsernameAllowed": false,
+  "bruteForceProtected": true,
+  "loginTheme": "cooksyne",
+  "defaultSignatureAlgorithm": "RS256",
+  "clients": [
+    {
+      "clientId": "${AUTH_CLIENT_ID}",
+      "name": "Cooksyne UI",
+      "description": "Public OIDC client for the Cooksyne Angular app.",
+      "rootUrl": "https://${DOMAIN}",
+      "baseUrl": "/",
+      "enabled": true,
+      "surrogateAuthRequired": false,
+      "alwaysDisplayInConsole": false,
+      "clientAuthenticatorType": "client-secret",
+      "redirectUris": [
+        "https://${DOMAIN}/*"
+      ],
+      "webOrigins": [
+        "https://${DOMAIN}"
+      ],
+      "notBefore": 0,
+      "bearerOnly": false,
+      "consentRequired": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "publicClient": true,
+      "frontchannelLogout": true,
+      "protocol": "openid-connect",
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "https://${DOMAIN}/*"
+      },
+      "defaultClientScopes": [
+        "web-origins",
+        "acr",
+        "profile",
+        "roles",
+        "email"
+      ],
+      "optionalClientScopes": [
+        "address",
+        "phone",
+        "offline_access",
+        "microprofile-jwt"
+      ]
+    }
+  ]
+}
